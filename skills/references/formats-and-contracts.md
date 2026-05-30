@@ -10,7 +10,8 @@
 6. Bridge state files
 7. Command contracts
 8. Hook and runtime targets
-9. Validation commands
+9. GUI layout contracts
+10. Validation commands
 
 ## 1. Runtime-Generated Files
 
@@ -219,7 +220,7 @@ State should include:
 
 ```text
 bridgeVersion
-expected version 0.2.30
+expected version 0.2.31
 url
 title
 saveDir
@@ -344,7 +345,58 @@ BBLeranCount = slots * 1.0012
 
 Use this when implementing `baby.slots.set` and `baby.slots.add`.
 
-## 9. Validation Commands
+Baby passive skills must be persisted through all three fields:
+
+```text
+_skills
+_realSkills
+_zs2ModkitBabyPassives
+```
+
+The bridge should re-sync `_zs2ModkitBabyPassives` into runtime skill arrays after baby refreshes. Adding or removing passive baby skills must not change `BBLeranCount`; only `baby.slots.*` changes learn slots.
+
+## 9. GUI Layout Contracts
+
+Window and scaling:
+
+```text
+default window 1120x760
+minimum window 760x560
+page-scroll-mode for narrow, short, or zoomed viewports
+zoom-scroll-mode for approximately 125%+ display scaling
+```
+
+Navigation:
+
+```text
+topbar
+primary tool nav (.tool-nav)
+secondary section nav (.tool-section-nav)
+```
+
+Measure sticky offsets at runtime and store them in CSS variables:
+
+```text
+--topbar-sticky-offset
+--tool-nav-sticky-height
+--section-nav-sticky-height
+```
+
+Top-level tab changes should scroll to the primary nav, not directly to the workspace or secondary nav. Section changes should scroll to the secondary nav while keeping the primary nav visible. Use the real page scroll container; in NW/Chromium this can be `body` rather than `window`.
+
+Catalog lists:
+
+```text
+first page by default
+search resets to page 1
+direct ID selection may locate the containing page
+row height from catalogRowHeight()
+rendered row writes --catalog-row-height
+```
+
+Check 760px width and 125%/150% Windows display scaling after changing rows, buttons, chips, or nav layout. There must be no horizontal page overflow and no overlapping nav bars.
+
+## 10. Validation Commands
 
 Prerequisites:
 

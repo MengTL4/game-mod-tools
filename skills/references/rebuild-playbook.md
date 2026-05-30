@@ -341,6 +341,11 @@ GUI:
 - Compile to `app/gui/app.js`.
 - Read extracted JSON catalogs from `output/extract/data`.
 - Use searchable paged lists with first/previous/next/last controls.
+- Keep long lists on page 1 by default; search returns to page 1, and direct ID selection may locate the containing page.
+- Support `760x560` minimum window size plus 125%/150% Windows display scaling.
+- Use page scroll mode under narrow, short, or zoomed viewports; keep primary tool navigation visible when switching top-level categories.
+- Measure sticky offsets from actual topbar, primary nav, and secondary nav heights. Do not hardcode offsets or scroll directly to the workspace in page scroll mode.
+- Make virtual catalog row height responsive to scroll/zoom mode and set `--catalog-row-height` while rendering.
 - Keep dense light tool layout.
 - Avoid nested card-heavy marketing UI.
 
