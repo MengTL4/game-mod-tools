@@ -56,6 +56,7 @@ input,
 select,
 textarea {
   font: inherit;
+  max-width: 100%;
   min-width: 0;
 }
 
@@ -68,6 +69,8 @@ button {
   padding: 6px clamp(10px, 1vw, 14px);
   cursor: pointer;
   line-height: 1.2;
+  overflow-wrap: anywhere;
+  white-space: normal;
   transition: background .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
 }
 
@@ -130,6 +133,10 @@ select {
   padding: 0 10px;
 }
 
+select {
+  text-overflow: ellipsis;
+}
+
 input:focus,
 select:focus,
 textarea:focus {
@@ -176,6 +183,10 @@ textarea {
   backdrop-filter: blur(10px);
 }
 
+.topbar > div:first-child {
+  min-width: 0;
+}
+
 .eyebrow {
   color: var(--accent);
   font-size: 11px;
@@ -189,6 +200,7 @@ h1 {
   font-size: 24px;
   line-height: 1.12;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .top-actions {
@@ -197,11 +209,17 @@ h1 {
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 10px;
+  min-width: 0;
+}
+
+.top-actions > * {
+  min-width: 0;
 }
 
 .status {
   display: grid;
   place-items: center;
+  max-width: 100%;
   min-width: 96px;
   min-height: 34px;
   padding: 0 12px;
@@ -210,6 +228,9 @@ h1 {
   background: #f8fafc;
   font-size: 13px;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status-idle {
@@ -233,6 +254,7 @@ h1 {
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   gap: var(--chrome-gap);
   min-height: 0;
+  overflow: hidden;
   padding: var(--chrome-gap);
 }
 
@@ -245,6 +267,7 @@ h1 {
   display: grid;
   grid-template-rows: auto auto auto minmax(140px, 1fr);
   gap: 12px;
+  overflow: hidden;
 }
 
 .workspace {
@@ -267,6 +290,8 @@ h1 {
 .panel-title {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
   min-height: 24px;
   margin-bottom: 12px;
   color: #0f3f8c;
@@ -275,7 +300,6 @@ h1 {
 }
 
 .panel-count {
-  margin-left: 8px;
   color: var(--muted);
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 11px;
@@ -314,6 +338,10 @@ dd {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.button-stack button {
+  width: 100%;
 }
 
 .save-files ul,
@@ -457,6 +485,14 @@ dd {
   align-items: end;
 }
 
+.row > * {
+  min-width: 0;
+}
+
+.row > button {
+  align-self: end;
+}
+
 .row.three {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
 }
@@ -486,6 +522,10 @@ dd {
 .row.skill-row {
   grid-template-columns: minmax(0, 1fr) auto auto;
   margin-top: 10px;
+}
+
+.row.baby-skill-editor-row {
+  grid-template-columns: minmax(120px, 1fr) minmax(112px, .7fr) minmax(112px, .7fr) minmax(96px, .6fr);
 }
 
 .row.skill-toolbar {
@@ -644,12 +684,15 @@ label span {
 .result-chip {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
+  min-width: 0;
   min-height: 28px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: #ffffff;
   padding: 0 10px;
   color: var(--text);
+  overflow-wrap: anywhere;
 }
 
 .inline-status {
@@ -745,7 +788,7 @@ label span {
   grid-template-columns: 44px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
-  min-height: 76px;
+  min-height: calc(var(--catalog-row-height, 88px) - 12px);
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #ffffff;
@@ -798,10 +841,14 @@ label span {
 
 .catalog-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 .catalog-actions button {
+  flex: 0 1 auto;
   min-width: 58px;
   padding: 0 12px;
 }
@@ -878,7 +925,7 @@ label span {
 
 .baby-row {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) minmax(74px, auto);
   gap: 12px;
   align-items: center;
   border: 1px solid var(--line);
@@ -927,6 +974,7 @@ label span {
   gap: 6px;
   align-items: center;
   margin-top: 7px;
+  min-width: 0;
 }
 
 .baby-skills b {
@@ -951,6 +999,10 @@ label span {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.battle-switches button {
+  width: 100%;
 }
 
 .toggle-btn.active {
@@ -1082,12 +1134,14 @@ body.page-scroll-mode .shell {
 body.page-scroll-mode .layout {
   grid-template-columns: 1fr;
   align-items: start;
+  overflow: visible;
 }
 
 body.page-scroll-mode .sidebar {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   grid-template-rows: auto;
   align-items: start;
+  overflow: visible;
 }
 
 body.page-scroll-mode .workspace {
@@ -1095,12 +1149,10 @@ body.page-scroll-mode .workspace {
   overflow: visible;
 }
 
-body.page-scroll-mode .tool-nav {
-  top: calc(76px + var(--chrome-gap));
-}
-
+body.page-scroll-mode .tool-nav,
 body.page-scroll-mode .tool-section-nav {
-  top: calc(125px + var(--chrome-gap));
+  position: static;
+  top: auto;
 }
 
 body.page-scroll-mode .tool-grid {
@@ -1159,6 +1211,26 @@ body.page-scroll-mode .party-panel ul {
   .event-list {
     max-height: 260px;
   }
+}
+
+body.zoom-scroll-mode {
+  --chrome-gap: clamp(8px, 1vw, 12px);
+  --panel-pad: clamp(10px, 1vw, 12px);
+  --sidebar-width: clamp(240px, 22vw, 286px);
+}
+
+body.zoom-scroll-mode .topbar {
+  min-height: 0;
+  padding: 10px clamp(10px, 1.4vw, 16px);
+}
+
+body.zoom-scroll-mode .tool-nav,
+body.zoom-scroll-mode .tool-section-nav {
+  gap: 5px;
+}
+
+body.zoom-scroll-mode .tool-grid {
+  gap: 10px;
 }
 
 @media (max-width: 760px) {

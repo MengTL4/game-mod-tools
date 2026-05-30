@@ -15,8 +15,8 @@
     "title": "再刷一把2 修改器",
     "width": 1120,
     "height": 760,
-    "min_width": 980,
-    "min_height": 660,
+    "min_width": 760,
+    "min_height": 560,
     "position": "center",
     "show": true,
     "frame": true

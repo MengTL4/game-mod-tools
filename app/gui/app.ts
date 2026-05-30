@@ -96,7 +96,7 @@ declare const nw: any;
   };
   const iconCache = new Map<number, string>();
   const catalogViews = new Map<string, any>();
-  const CATALOG_ROW_HEIGHT = 88;
+  const DEFAULT_CATALOG_ROW_HEIGHT = 88;
   const CATALOG_PAGE_SIZE = 20;
   const DATALIST_LIMIT = 80;
   const catalogPages = new Map<string, any>();
@@ -829,7 +829,21 @@ declare const nw: any;
     };
   }
 
-  function catalogRowHtml(entry, options, selectedId, top) {
+  function viewportScale() {
+    const visualViewport = (window as any).visualViewport;
+    const visualScale = Number(visualViewport && visualViewport.scale || 1);
+    const deviceScale = Number(window.devicePixelRatio || 1);
+    return Math.max(1, visualScale, deviceScale);
+  }
+
+  function catalogRowHeight() {
+    if (window.innerWidth <= 760) return 128;
+    if (document.body.classList.contains("zoom-scroll-mode")) return 112;
+    if (document.body.classList.contains("page-scroll-mode")) return 100;
+    return DEFAULT_CATALOG_ROW_HEIGHT;
+  }
+
+  function catalogRowHtml(entry, options, selectedId, top, rowHeight) {
     const rowKey = options.key ? options.key(entry) : entry.id;
     const rowKind = options.rowKind ? options.rowKind(entry) : options.kind || "";
     const active = String(rowKey) === String(selectedId) ? " active" : "";
@@ -837,7 +851,7 @@ declare const nw: any;
     const actions = options.actions(entry);
     const extra = options.extra ? options.extra(entry) : "";
     const description = options.description ? options.description(entry) : "";
-    return `<div class="catalog-row${active}" style="top:${top}px" data-kind="${escapeHtml(rowKind)}" data-id="${entry.id}">
+    return `<div class="catalog-row${active}" style="top:${top}px;--catalog-row-height:${rowHeight}px" data-kind="${escapeHtml(rowKind)}" data-id="${entry.id}">
       ${leading}
       <div class="catalog-main">
         <span class="catalog-name">${escapeHtml(entry.name)}</span>
@@ -862,10 +876,10 @@ declare const nw: any;
     }
     const rowHeight = view.rowHeight;
     const selectedId = options.selectedId;
-    const renderKey = `static:${selectedId}:${view.page}:${entries.length}:${target.clientWidth}:${iconRenderVersion}`;
+    const renderKey = `static:${selectedId}:${view.page}:${entries.length}:${target.clientWidth}:${rowHeight}:${iconRenderVersion}`;
     if (view.renderKey === renderKey) return;
     view.renderKey = renderKey;
-    const rows = entries.map((entry, index) => catalogRowHtml(entry, options, selectedId, index * rowHeight));
+    const rows = entries.map((entry, index) => catalogRowHtml(entry, options, selectedId, index * rowHeight, rowHeight));
     target.innerHTML = `<div class="catalog-spacer" style="height:${entries.length * rowHeight}px">${rows.join("")}</div>`;
   }
 
@@ -891,7 +905,7 @@ declare const nw: any;
       sourceEntries: entries,
       filteredEntries: filtered.entries,
       options,
-      rowHeight: CATALOG_ROW_HEIGHT,
+      rowHeight: catalogRowHeight(),
       queryKey,
       page: pageState.page,
       pageSize: pageState.pageSize,
@@ -1576,7 +1590,12 @@ declare const nw: any;
   }
 
   function updateViewportMode() {
-    const pageScrollMode = window.innerWidth <= 980 || window.innerHeight <= 760;
+    const scale = viewportScale();
+    const zoomed = scale >= 1.2;
+    const pageScrollMode = window.innerWidth <= 980
+      || window.innerHeight <= 760
+      || (zoomed && (window.innerWidth <= 1280 || window.innerHeight <= 900));
+    document.body.classList.toggle("zoom-scroll-mode", zoomed);
     document.body.classList.toggle("page-scroll-mode", pageScrollMode);
     return pageScrollMode;
   }
