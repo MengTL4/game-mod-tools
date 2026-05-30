@@ -18,6 +18,9 @@
   --chrome-gap: clamp(10px, 1.25vw, 16px);
   --panel-pad: clamp(12px, 1.15vw, 14px);
   --sidebar-width: clamp(270px, 23vw, 318px);
+  --topbar-sticky-offset: 76px;
+  --tool-nav-sticky-height: 49px;
+  --section-nav-sticky-height: 43px;
   --iconset-url: none;
   color-scheme: light;
 }
@@ -393,6 +396,7 @@ dd {
   background: #ffffff;
   box-shadow: var(--shadow);
   padding: 6px;
+  scroll-margin-top: calc(var(--topbar-sticky-offset) + var(--chrome-gap));
 }
 
 .tool-nav button {
@@ -421,6 +425,7 @@ dd {
   background: rgba(255, 255, 255, .96);
   box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
   padding: 6px;
+  scroll-margin-top: calc(var(--topbar-sticky-offset) + var(--tool-nav-sticky-height) + var(--chrome-gap));
 }
 
 .tool-section-nav button {
@@ -1124,6 +1129,7 @@ label span {
 
 body.page-scroll-mode {
   overflow: auto;
+  scroll-padding-top: calc(var(--topbar-sticky-offset) + var(--tool-nav-sticky-height) + var(--section-nav-sticky-height) + var(--chrome-gap));
 }
 
 body.page-scroll-mode .shell {
@@ -1149,10 +1155,16 @@ body.page-scroll-mode .workspace {
   overflow: visible;
 }
 
-body.page-scroll-mode .tool-nav,
+body.page-scroll-mode .tool-nav {
+  position: sticky;
+  top: var(--topbar-sticky-offset);
+  z-index: 7;
+}
+
 body.page-scroll-mode .tool-section-nav {
-  position: static;
-  top: auto;
+  position: sticky;
+  top: calc(var(--topbar-sticky-offset) + var(--tool-nav-sticky-height) + 6px);
+  z-index: 6;
 }
 
 body.page-scroll-mode .tool-grid {
@@ -1249,9 +1261,18 @@ body.zoom-scroll-mode .tool-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  body.page-scroll-mode .tool-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .tool-section-nav {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.page-scroll-mode .tool-section-nav {
+    position: static;
+    top: auto;
   }
 
   .row,

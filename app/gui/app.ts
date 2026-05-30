@@ -1436,6 +1436,7 @@ declare const nw: any;
     dom.toolSectionNav.innerHTML = sections.map((item) =>
       `<button type="button" class="${item.section === active ? "active" : ""}" data-tool-section-jump="${escapeHtml(item.section)}">${escapeHtml(item.label)}</button>`
     ).join("");
+    requestAnimationFrame(syncStickyNavMetrics);
   }
 
   function panelMatchesActiveSection(panel) {
@@ -1467,7 +1468,7 @@ declare const nw: any;
     } else {
       updateVisiblePanels();
     }
-    if (!options.keepScroll) scrollActiveToolAreaToTop();
+    if (!options.keepScroll) scrollActiveToolAreaToTop({ target: "section" });
     requestAnimationFrame(renderActiveCatalogs);
   }
 
@@ -1600,8 +1601,28 @@ declare const nw: any;
     return pageScrollMode;
   }
 
+  function cssPixelVar(name, fallback = 0) {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name);
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function syncStickyNavMetrics() {
+    const topbar = document.querySelector<HTMLElement>(".topbar");
+    const toolNav = document.querySelector<HTMLElement>(".tool-nav");
+    const sectionNav = dom.toolSectionNav;
+    const topbarHeight = topbar ? Math.ceil(topbar.getBoundingClientRect().height) : 0;
+    const toolNavHeight = toolNav ? Math.ceil(toolNav.getBoundingClientRect().height) : 0;
+    const sectionNavHeight = sectionNav && !sectionNav.hidden ? Math.ceil(sectionNav.getBoundingClientRect().height) : 0;
+    const rootStyle = document.documentElement.style;
+    rootStyle.setProperty("--topbar-sticky-offset", `${topbarHeight}px`);
+    rootStyle.setProperty("--tool-nav-sticky-height", `${toolNavHeight}px`);
+    rootStyle.setProperty("--section-nav-sticky-height", `${sectionNavHeight}px`);
+  }
+
   function rerenderAfterViewportChange() {
     updateViewportMode();
+    syncStickyNavMetrics();
     renderCatalogs();
   }
 
@@ -1611,14 +1632,46 @@ declare const nw: any;
     const visualViewport = (window as any).visualViewport;
     if (visualViewport) visualViewport.addEventListener("resize", handleResize);
     updateViewportMode();
+    requestAnimationFrame(syncStickyNavMetrics);
   }
 
-  function scrollActiveToolAreaToTop() {
+  function pageScrollContainer() {
+    const candidates = [
+      document.scrollingElement as HTMLElement,
+      document.documentElement,
+      document.body
+    ].filter(Boolean);
+    return candidates.find((element) => {
+      const style = getComputedStyle(element);
+      return element.scrollHeight > element.clientHeight + 1 && style.overflowY !== "hidden";
+    }) || document.scrollingElement as HTMLElement || document.body;
+  }
+
+  function scrollPageTargetBelowSticky(target, targetKind) {
+    if (!target) return;
+    syncStickyNavMetrics();
+    const scroller = pageScrollContainer();
+    const scrollerRect = scroller === document.body || scroller === document.documentElement
+      ? { top: 0 }
+      : scroller.getBoundingClientRect();
+    const topbarHeight = cssPixelVar("--topbar-sticky-offset", 0);
+    const toolNavHeight = cssPixelVar("--tool-nav-sticky-height", 0);
+    const gap = cssPixelVar("--chrome-gap", 10);
+    const offset = topbarHeight + (targetKind === "section" ? toolNavHeight + gap : gap);
+    const top = scroller.scrollTop + target.getBoundingClientRect().top - scrollerRect.top - offset;
+    scroller.scrollTo({ top: Math.max(0, Math.floor(top)), behavior: "auto" });
+  }
+
+  function scrollActiveToolAreaToTop(options: any = {}) {
     const grid = document.querySelector<HTMLElement>(".tool-grid");
     if (grid) grid.scrollTop = 0;
     if (!document.body.classList.contains("page-scroll-mode")) return;
+    const toolNav = document.querySelector<HTMLElement>(".tool-nav");
+    const sectionNav = dom.toolSectionNav && !dom.toolSectionNav.hidden ? dom.toolSectionNav : null;
     const workspace = document.querySelector<HTMLElement>(".workspace");
-    if (workspace) workspace.scrollIntoView({ block: "start", behavior: "auto" });
+    const targetKind = options.target === "section" && sectionNav ? "section" : "primary";
+    const target = targetKind === "section" ? sectionNav : toolNav || workspace;
+    scrollPageTargetBelowSticky(target, targetKind);
   }
 
   function sendCommand(command) {
@@ -2419,7 +2472,8 @@ declare const nw: any;
     }
     else updateVisiblePanels();
     requestAnimationFrame(() => {
-      scrollActiveToolAreaToTop();
+      syncStickyNavMetrics();
+      scrollActiveToolAreaToTop({ target: "primary" });
       renderActiveCatalogs();
     });
   }
