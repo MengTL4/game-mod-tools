@@ -19,7 +19,7 @@ declare const nw: any;
   const costumeDataPath = path.join(rootDir, "www", "data", "huanzhuang.json");
   const iconDir = path.join(process.cwd(), "icons");
   const iconSetPath = path.join(rootDir, "www", "img", "system", "IconSet.png");
-  const EXPECTED_BRIDGE_VERSION = "0.2.30";
+  const EXPECTED_BRIDGE_VERSION = "0.2.31";
 
   const $ = (id: string): any => document.getElementById(id);
   const dom = {
@@ -1857,7 +1857,9 @@ declare const nw: any;
       row.level ?? "",
       babyLearnSlotsOf(row),
       row.actionCount || 0,
-      row.passiveCount || 0
+      row.passiveCount || 0,
+      (row.actionSkills || []).map((skill: any) => skill.id).join(","),
+      (row.passiveSkills || []).map((skill: any) => skill.id).join(",")
     ].join(":")).join("|");
     if (signature === babyOptionsSignature) return;
     babyOptionsSignature = signature;
@@ -1866,7 +1868,7 @@ declare const nw: any;
 
   function skillChipList(skills, emptyText) {
     if (!Array.isArray(skills) || !skills.length) return `<span>${escapeHtml(emptyText)}</span>`;
-    return skills.slice(0, 18).map((skill) =>
+    return skills.map((skill) =>
       `<span class="result-chip">${escapeHtml(skill.id)} ${escapeHtml(skill.name || "")}</span>`
     ).join("");
   }

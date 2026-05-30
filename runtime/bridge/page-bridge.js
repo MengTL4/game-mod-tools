@@ -2,8 +2,10 @@
   if (window.location && String(window.location.href).includes("_generated_background_page.html")) return;
   if (window.__codexLocalTrainerBridge) return;
 
+  const BABY_PASSIVE_STORE_KEY = "_zs2ModkitBabyPassives";
+
   const bridge = {
-    version: "0.2.30",
+    version: "0.2.31",
     startedAt: new Date().toISOString(),
     startedAtMs: Date.now(),
     processed: Object.create(null),
@@ -693,6 +695,15 @@
     return changed;
   }
 
+  function pushUniqueNumericId(values, id) {
+    if (!Array.isArray(values)) return false;
+    const target = Math.floor(looseNumber(id));
+    if (!Number.isFinite(target) || target <= 0) return false;
+    if (values.some(value => Math.floor(looseNumber(value)) === target)) return false;
+    values.push(target);
+    return true;
+  }
+
   function actorDataEntries() {
     const actors = resolveActors();
     const data = actors && actors._data;
@@ -740,11 +751,39 @@
 
   function actorLearnedSkillIds(actor) {
     if (!actor) return [];
+    if (isBabyActor(actor)) {
+      const ids = [];
+      if (Array.isArray(actor._skills)) ids.push(...actor._skills);
+      if (Array.isArray(actor._realSkills)) ids.push(...actor._realSkills);
+      if (Array.isArray(actor[BABY_PASSIVE_STORE_KEY])) ids.push(...actor[BABY_PASSIVE_STORE_KEY]);
+      return uniqueNumericIds(ids);
+    }
     if (Array.isArray(actor._skills)) return uniqueNumericIds(actor._skills);
     try {
       if (typeof actor.skills === "function") return uniqueNumericIds(actor.skills().map(skill => skill && skill.id));
     } catch (_) {}
     return [];
+  }
+
+  function babyPassiveStore(actor) {
+    if (!actor || typeof actor !== "object") return [];
+    if (!Array.isArray(actor[BABY_PASSIVE_STORE_KEY])) {
+      actor[BABY_PASSIVE_STORE_KEY] = actorLearnedSkillIds(actor).slice();
+    }
+    return actor[BABY_PASSIVE_STORE_KEY];
+  }
+
+  function syncBabyPassiveSkills(actor) {
+    if (!isBabyActor(actor)) return [];
+    const ids = uniqueNumericIds([...actorLearnedSkillIds(actor), ...babyPassiveStore(actor)]);
+    actor[BABY_PASSIVE_STORE_KEY] = ids.slice();
+    if (!Array.isArray(actor._skills)) actor._skills = [];
+    if (!Array.isArray(actor._realSkills)) actor._realSkills = [];
+    ids.forEach((id) => {
+      pushUniqueNumericId(actor._skills, id);
+      pushUniqueNumericId(actor._realSkills, id);
+    });
+    return ids;
   }
 
   function actionSkillId(action) {
@@ -815,11 +854,14 @@
     return ids;
   }
 
-  function refreshBabyActor(actor) {
+  function refreshBabyActor(actor, options) {
+    const opts = options || {};
+    syncBabyPassiveSkills(actor);
     refreshActor(actor);
     try {
-      if (actor && typeof actor.makeSkillItemReplace === "function") actor.makeSkillItemReplace();
+      if (opts.rebuildActions && actor && typeof actor.makeSkillItemReplace === "function") actor.makeSkillItemReplace();
     } catch (_) {}
+    syncBabyPassiveSkills(actor);
     refreshMapAndWindows();
   }
 
@@ -851,17 +893,11 @@
     };
   }
 
-  function adjustBabyLearnCount(actor, delta) {
-    if (!actor) return;
-    const current = babyLearnSlotInfo(actor).slots;
-    actor[babyLearnCountKey(actor)] = encodeBabyLearnSlots(current + delta);
-  }
-
   function babyInfo(row) {
     const actor = row && row.actor || row;
     if (!actor) return null;
     const actions = skillListInfo(actionSkillIds(actor));
-    const passives = skillListInfo(actorLearnedSkillIds(actor));
+    const passives = skillListInfo(syncBabyPassiveSkills(actor));
     const learnSlots = babyLearnSlotInfo(actor);
     return {
       index: row && row.index != null ? row.index : null,
@@ -924,32 +960,27 @@
     return null;
   }
 
-  function learnPassiveBabySkill(actor, skillId, command) {
+  function learnPassiveBabySkill(actor, skillId) {
     const id = Math.floor(requireNumber(skillId, "skillId"));
     const before = actorLearnedSkillIds(actor);
-    const countBefore = Number(actor.BBLeranCount != null ? actor.BBLeranCount : actor.BBLearnCount);
     if (before.includes(id)) return false;
     if (typeof actor.learnSkill === "function") actor.learnSkill(id);
     if (!Array.isArray(actor._skills)) actor._skills = [];
-    if (!actor._skills.some(value => Math.floor(looseNumber(value)) === id)) actor._skills.push(id);
-    if (Array.isArray(actor._realSkills) && !actor._realSkills.some(value => Math.floor(looseNumber(value)) === id)) actor._realSkills.push(id);
-    if (command && command.updateCount !== false && Number(actor.BBLeranCount != null ? actor.BBLeranCount : actor.BBLearnCount) === countBefore) {
-      adjustBabyLearnCount(actor, 1);
-    }
+    if (!Array.isArray(actor._realSkills)) actor._realSkills = [];
+    pushUniqueNumericId(actor._skills, id);
+    pushUniqueNumericId(actor._realSkills, id);
+    pushUniqueNumericId(babyPassiveStore(actor), id);
     return true;
   }
 
-  function forgetPassiveBabySkill(actor, skillId, command) {
+  function forgetPassiveBabySkill(actor, skillId) {
     const id = Math.floor(requireNumber(skillId, "skillId"));
     const before = actorLearnedSkillIds(actor);
-    const countBefore = Number(actor.BBLeranCount != null ? actor.BBLeranCount : actor.BBLearnCount);
     if (!before.includes(id)) return false;
     if (typeof actor.forgetSkill === "function") actor.forgetSkill(id);
     removeNumericId(actor._skills, id);
     removeNumericId(actor._realSkills, id);
-    if (command && command.updateCount !== false && Number(actor.BBLeranCount != null ? actor.BBLeranCount : actor.BBLearnCount) === countBefore) {
-      adjustBabyLearnCount(actor, -1);
-    }
+    removeNumericId(babyPassiveStore(actor), id);
     return true;
   }
 
@@ -988,7 +1019,7 @@
     const changed = mode === "passive"
       ? learnPassiveBabySkill(actor, skillId, command)
       : learnActionBabySkill(actor, skillId, command);
-    refreshBabyActor(actor);
+    refreshBabyActor(actor, { rebuildActions: mode === "action" });
     return { mode, changed, skill: skillInfoById(skillId), baby: babyInfo(row), summary: babySummary() };
   }
 
@@ -1002,7 +1033,7 @@
     const changed = mode === "passive"
       ? forgetPassiveBabySkill(actor, skillId, command)
       : forgetActionBabySkill(actor, skillId);
-    refreshBabyActor(actor);
+    refreshBabyActor(actor, { rebuildActions: mode === "action" });
     return { mode, changed, skill: skillInfoById(skillId), baby: babyInfo(row), summary: babySummary() };
   }
 
@@ -1016,17 +1047,14 @@
       passiveCleared = actorLearnedSkillIds(actor).length;
       actor._skills = [];
       if (Array.isArray(actor._realSkills)) actor._realSkills = [];
-      if (!command || command.updateCount !== false) {
-        if (actor.BBLeranCount != null) actor.BBLeranCount = 0;
-        if (actor.BBLearnCount != null) actor.BBLearnCount = 0;
-      }
+      actor[BABY_PASSIVE_STORE_KEY] = [];
     }
     if (mode === "action" || mode === "core" || mode === "all") {
       actionCleared = actionSkillIds(actor).length;
       actor._bbSkill = [];
       actor._actlist = [];
     }
-    refreshBabyActor(actor);
+    refreshBabyActor(actor, { rebuildActions: mode === "action" || mode === "core" || mode === "all" });
     return { mode, passiveCleared, actionCleared, baby: babyInfo(row), summary: babySummary() };
   }
 
