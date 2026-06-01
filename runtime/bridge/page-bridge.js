@@ -5,7 +5,7 @@
   const BABY_PASSIVE_STORE_KEY = "_zs2ModkitBabyPassives";
 
   const bridge = {
-    version: "0.2.34",
+    version: "0.2.35",
     startedAt: new Date().toISOString(),
     startedAtMs: Date.now(),
     processed: Object.create(null),
@@ -2561,14 +2561,8 @@
     ids.forEach((id) => {
       config.enemyBook[id] = 1;
     });
-    const system = resolveSystem();
-    if (system) {
-      system._revealedEnemyWeaknesses = system._revealedEnemyWeaknesses || {};
-      ids.forEach((id) => {
-        system._revealedEnemyWeaknesses[id] = true;
-      });
-    }
-    return { count: ids.length, saved: saveConfig() };
+    const weaknessRepair = sanitizeEnemyWeaknessStore();
+    return { count: ids.length, saved: saveConfig(), weaknessRepair };
   }
 
   function saveGameToSlot(savefileId) {
@@ -2576,6 +2570,7 @@
     if (!dataManager || typeof dataManager.saveGame !== "function") throw new Error("saveGame is unavailable");
     const id = Math.floor(requireNumber(savefileId || 1, "id"));
     if (id <= 0) throw new Error("save slot id must be positive");
+    sanitizeEnemyWeaknessStore();
     const result = dataManager.saveGame(id);
     return { id, result: String(result) };
   }
@@ -2756,6 +2751,7 @@
     const variables = resolveVariables();
     const switches = resolveSwitches();
     const dataManager = resolveDataManager();
+    const enemyWeaknessRepair = sanitizeEnemyWeaknessStore();
     patchTrainerHooks();
     preserveNoCostResources("state");
     const mapInfo = currentMapInfo();
@@ -2792,6 +2788,7 @@
       progress: progressSummary(),
       hangup: hangupSummary(),
       offlineHunt: offlineHuntSummary(),
+      enemyWeaknessRepair,
       rateStats: { ...bridge.rateStats },
       battleStats: { ...bridge.battleStats },
       hookTargets: bridge.hookTargets.slice(),
@@ -2864,6 +2861,46 @@
       return true;
     }
     return false;
+  }
+
+  function sanitizeEnemyWeaknessStore() {
+    const system = resolveSystem();
+    if (!system) return { available: false, repaired: 0, initialized: false };
+    let store = system._revealedEnemyWeaknesses;
+    let initialized = false;
+    if (!store || typeof store !== "object") {
+      if (typeof system.initializeRevealedEnemyWeaknesses === "function") {
+        try {
+          system.initializeRevealedEnemyWeaknesses();
+          initialized = true;
+        } catch (error) {
+          bridge.lastError = String(error && error.stack || error);
+        }
+      }
+      store = system._revealedEnemyWeaknesses;
+      if (!store || typeof store !== "object") {
+        store = {};
+        system._revealedEnemyWeaknesses = store;
+        initialized = true;
+      }
+    }
+
+    let repaired = 0;
+    Object.keys(store).forEach((key) => {
+      if (key === "@c" || key === "@a") return;
+      const id = Math.floor(looseNumber(key));
+      if (!Number.isFinite(id) || id <= 0) return;
+      const value = store[key];
+      if (Array.isArray(value)) return;
+      if (value && typeof value === "object" && Array.isArray(value["@a"])) {
+        store[key] = uniqueNumericIds(value["@a"]);
+      } else {
+        store[key] = [];
+      }
+      repaired += 1;
+    });
+    if (repaired > 0) bridge.enemyWeaknessRepair = { ts: Date.now(), repaired };
+    return { available: true, repaired, initialized };
   }
 
   function readJsonFile(file) {
@@ -3139,16 +3176,10 @@
       config.enemyBook[id] = 1;
     });
 
-    const system = resolveSystem();
-    if (system) {
-      system._revealedEnemyWeaknesses = system._revealedEnemyWeaknesses || {};
-      targetIds.forEach((id) => {
-        system._revealedEnemyWeaknesses[id] = true;
-      });
-    }
+    const weaknessRepair = sanitizeEnemyWeaknessStore();
     const saved = saveConfig();
     refreshMapAndWindows();
-    return { count: targetIds.length, saved };
+    return { count: targetIds.length, saved, weaknessRepair };
   }
 
   function hashString(value) {

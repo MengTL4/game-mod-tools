@@ -220,7 +220,7 @@ State should include:
 
 ```text
 bridgeVersion
-expected version 0.2.34
+expected version 0.2.35
 url
 title
 saveDir
