@@ -19,7 +19,7 @@ declare const nw: any;
   const costumeDataPath = path.join(rootDir, "www", "data", "huanzhuang.json");
   const iconDir = path.join(process.cwd(), "icons");
   const iconSetPath = path.join(rootDir, "www", "img", "system", "IconSet.png");
-  const EXPECTED_BRIDGE_VERSION = "0.2.35";
+  const EXPECTED_BRIDGE_VERSION = "0.2.36";
 
   const $ = (id: string): any => document.getElementById(id);
   const dom = {
@@ -61,6 +61,7 @@ declare const nw: any;
     babyMetric: $("babyMetric"),
     babyHint: $("babyHint"),
     babyState: $("babyState"),
+    babyFlashState: $("babyFlashState"),
     babyList: $("babyList"),
     talentPointMetric: $("talentPointMetric"),
     talentState: $("talentState"),
@@ -1067,7 +1068,7 @@ declare const nw: any;
       query: $("offlineHuntTroopSearch").value,
       selectedId: selectedNumber("offlineHuntTroopId"),
       leading: (entry) => badgeHtml(entry.id, "troop"),
-      actions: (entry) => `<button data-catalog-action="offline-troop-select" data-id="${entry.id}">选择</button><button data-catalog-action="offline-troop-run" data-id="${entry.id}">执行</button>`,
+      actions: (entry) => `<button data-catalog-action="offline-troop-select" data-id="${entry.id}">选择</button><button data-catalog-action="offline-troop-run" data-id="${entry.id}">执行</button><button data-catalog-action="battle-start" data-id="${entry.id}">战斗</button>`,
       extra: (entry) => entry.tags && entry.tags.length ? entry.tags.join("/") : "",
       description: (entry) => entry.description,
       countTarget: dom.offlineHuntTroopListCount
@@ -1251,6 +1252,9 @@ declare const nw: any;
     const huntTroopName = catalogName("troop", numberValue("offlineHuntTroopId", NaN));
     $("offlineHuntTroopHint").textContent = huntTroopName ? `固定敌群 ${$("offlineHuntTroopId").value} / ${huntTroopName}` : "";
 
+    const battleTroopName = catalogName("troop", numberValue("battleTroopId", NaN));
+    $("battleTroopHint").textContent = battleTroopName ? `${$("battleTroopId").value} / ${battleTroopName}` : "";
+
     const commonEventName = catalogName("commonEvent", numberValue("commonEventId", NaN));
     $("commonEventHint").textContent = commonEventName ? `${$("commonEventId").value} / ${commonEventName}` : "";
   }
@@ -1330,7 +1334,7 @@ declare const nw: any;
         else if (id === "costumeId") renderCostumeList();
       });
     });
-    ["variableId", "switchId", "mapId", "offlineHuntMapId", "offlineHuntTroopId", "commonEventId"].forEach((id) => {
+    ["variableId", "switchId", "mapId", "offlineHuntMapId", "offlineHuntTroopId", "battleTroopId", "commonEventId"].forEach((id) => {
       $(id).addEventListener("input", () => {
         updateLookupHints();
         if (id === "variableId") renderVariableList();
@@ -1856,6 +1860,11 @@ declare const nw: any;
     renderOfflineHuntTroopList();
   }
 
+  function selectBattleTroop(id) {
+    $("battleTroopId").value = String(id);
+    updateLookupHints();
+  }
+
   function selectCommonEvent(id) {
     $("commonEventId").value = String(id);
     updateLookupHints();
@@ -2008,6 +2017,37 @@ declare const nw: any;
     return command;
   }
 
+  function updateBabyFlashPanel(flash) {
+    const available = !!(flash && flash.available);
+    const goldInput = $("babyFlashGold");
+    const silverInput = $("babyFlashSilver");
+    goldInput.disabled = !available;
+    silverInput.disabled = !available;
+    $("babyFlashApplyBtn").disabled = !available;
+    if (available) {
+      goldInput.checked = !!flash.goldEnabled;
+      silverInput.checked = !!flash.silverEnabled;
+      dom.babyFlashState.textContent = [
+        `金闪${flash.goldEnabled ? "允许" : "关闭"}`,
+        `银闪${flash.silverEnabled ? "允许" : "关闭"}`,
+        `配置 ${flash.goldClose === null ? "null" : flash.goldClose ? "J关" : "J开"}/${flash.silverClose === null ? "null" : flash.silverClose ? "Y关" : "Y开"}`
+      ].join(" / ");
+      return;
+    }
+    goldInput.checked = false;
+    silverInput.checked = false;
+    dom.babyFlashState.textContent = "等待运行时配置";
+  }
+
+  function setBabyFlash() {
+    sendCommand({
+      type: "baby.flash.set",
+      gold: !!$("babyFlashGold").checked,
+      silver: !!$("babyFlashSilver").checked,
+      save: true
+    });
+  }
+
   function talentCommandBase(type, party = false) {
     const command: any = {
       type,
@@ -2109,6 +2149,15 @@ declare const nw: any;
     if (command) sendCommand(command);
   }
 
+  function startBattle(id?: number) {
+    if (id !== undefined) selectBattleTroop(id);
+    const troopId = optionalNumber("battleTroopId");
+    const command: any = { type: "battle.start", canEscape: true, canLose: true };
+    if (troopId !== undefined && troopId > 0) command.troopId = troopId;
+    else command.variableId = 399;
+    sendCommand(command);
+  }
+
   function runCommonEvent(id) {
     selectCommonEvent(id);
     sendCommand({ type: "commonEvent.run", id: Number(id) });
@@ -2158,6 +2207,7 @@ declare const nw: any;
       selectOfflineHuntTroop(id);
       runOfflineHunt();
     }
+    else if (action === "battle-start") startBattle(id);
     else if (action === "common-event-run") runCommonEvent(id);
   }
 
@@ -2178,6 +2228,7 @@ declare const nw: any;
       dom.babyMetric.textContent = "0";
       dom.babyHint.textContent = "";
       dom.babyState.textContent = "";
+      updateBabyFlashPanel(null);
       dom.babyList.innerHTML = "";
       $("babyLearnSlots").value = "";
       updateBabyOptions(null);
@@ -2186,6 +2237,9 @@ declare const nw: any;
       $("titleHint").textContent = "";
       $("costumeHint").textContent = "";
       dom.battleState.textContent = "";
+      $("battleTroopHint").textContent = "";
+      $("mapThroughBtn").classList.remove("active");
+      $("mapThroughBtn").textContent = "穿墙";
       dom.offlineHuntMetric.textContent = "0";
       dom.offlineHuntState.textContent = "";
       dom.offlineHuntResult.innerHTML = "";
@@ -2217,6 +2271,8 @@ declare const nw: any;
     dom.mapState.textContent = currentMap.mapId
       ? `${currentMap.mapId} (${currentMap.x ?? "-"}, ${currentMap.y ?? "-"})`
       : "-";
+    $("mapThroughBtn").classList.toggle("active", !!currentMap.through);
+    $("mapThroughBtn").textContent = currentMap.through ? "穿墙ON" : "穿墙OFF";
 
     const files = Array.isArray(state.saveFiles) ? state.saveFiles : [];
     dom.saveFiles.innerHTML = files.length
@@ -2234,6 +2290,7 @@ declare const nw: any;
     const options = fresh ? (state.trainerOptions || {}) : {};
     if (fresh) updateOptionInputs(options);
     updateBattleButtons(options, fresh && state.hooksPatched, fresh ? state.rateStats : null, fresh ? state.battleStats : null);
+    updateBabyFlashPanel(fresh ? state.babyFlash : null);
     renderBabyList(fresh ? state.baby : null);
     updateProgressPanel(fresh ? state.progress : null);
     updateOfflineHuntPanel(fresh ? state.offlineHunt : null);
@@ -2641,6 +2698,8 @@ declare const nw: any;
       if (id !== undefined) command.id = id;
       sendCommand(command);
     });
+    $("babyFlashApplyBtn").addEventListener("click", setBabyFlash);
+    $("babyFlashInfoBtn").addEventListener("click", () => sendCommand({ type: "baby.flash.info" }));
     $("unlockEnemyBookBtn").addEventListener("click", () => sendCommand({ type: "progress.enemyBook.unlock" }));
     $("ratesApplyBtn").addEventListener("click", () => sendOptions({
       expRate: numberValue("expRate", 1),
@@ -2672,6 +2731,7 @@ declare const nw: any;
     $("invincibleBtn").addEventListener("click", () => sendOptions({ invincible: !$("invincibleBtn").classList.contains("active") }));
     $("battleKillBtn").addEventListener("click", () => sendCommand({ type: "battle.killEnemies" }));
     $("battleEscapeBtn").addEventListener("click", () => sendCommand({ type: "battle.escape" }));
+    $("battleStartBtn").addEventListener("click", () => startBattle());
     $("offlineHuntPreviewBtn").addEventListener("click", previewOfflineHunt);
     $("offlineHuntRunBtn").addEventListener("click", runOfflineHunt);
     $("offlineHuntPreviewTroopBtn").addEventListener("click", previewOfflineHunt);
@@ -2689,6 +2749,10 @@ declare const nw: any;
     });
     $("partyRecoverBtn").addEventListener("click", () => sendCommand({ type: "party.recover" }));
     $("mapTransferBtn").addEventListener("click", () => transferMap(numberValue("mapId", 0)));
+    $("mapThroughBtn").addEventListener("click", () => sendCommand({
+      type: "map.through.set",
+      value: !$("mapThroughBtn").classList.contains("active")
+    }));
     $("recordPositionBtn").addEventListener("click", recordCurrentPosition);
     $("returnPositionBtn").addEventListener("click", returnRecordedPosition);
     $("commonEventRunBtn").addEventListener("click", () => runCommonEvent(numberValue("commonEventId", 0)));

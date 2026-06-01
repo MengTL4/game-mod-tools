@@ -64,6 +64,8 @@ function usage() {
   node trainer-send.mjs baby.skill.clear 1001 passive
   node trainer-send.mjs baby.slots.set 1001 5
   node trainer-send.mjs baby.slots.add 1001 1
+  node trainer-send.mjs baby.flash.info
+  node trainer-send.mjs baby.flash.set gold=true silver=true save=true
   node trainer-send.mjs map.current
   node trainer-send.mjs map.transfer 5 10 12
   node trainer-send.mjs map.through.set true
@@ -171,6 +173,8 @@ function makeCommand(argv) {
   if (type === "costume.unlock") return { type, ids: argv.slice(1) };
   if (type === "costume.unlockAll") return { type };
   if (type === "baby.info") return { type };
+  if (type === "baby.flash.info") return { type };
+  if (type === "baby.flash.set") return { type, ...parseKeyValueArgs(argv.slice(1)) };
   if (type === "baby.skill.learn" || type === "baby.skill.forget") {
     const optionStart = argv[3] && String(argv[3]).includes("=") ? 3 : 4;
     const options = parseKeyValueArgs(argv.slice(optionStart));

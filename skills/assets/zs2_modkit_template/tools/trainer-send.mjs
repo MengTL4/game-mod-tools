@@ -31,6 +31,8 @@ function usage() {
   node trainer-send.mjs party.recover
   node trainer-send.mjs trainer.options.set expRate=2 goldRate=2 dropRate=3 noSkillCost=true oneHitKill=true invincible=true
   node trainer-send.mjs trainer.hooks.info
+  node trainer-send.mjs battle.start 192
+  node trainer-send.mjs battle.start variableId=399
   node trainer-send.mjs battle.killEnemies
   node trainer-send.mjs battle.escape
   node trainer-send.mjs hangup.info
@@ -62,8 +64,12 @@ function usage() {
   node trainer-send.mjs baby.skill.clear 1001 passive
   node trainer-send.mjs baby.slots.set 1001 5
   node trainer-send.mjs baby.slots.add 1001 1
+  node trainer-send.mjs baby.flash.info
+  node trainer-send.mjs baby.flash.set gold=true silver=true save=true
   node trainer-send.mjs map.current
   node trainer-send.mjs map.transfer 5 10 12
+  node trainer-send.mjs map.through.set true
+  node trainer-send.mjs map.through.toggle
   node trainer-send.mjs commonEvent.run 10
   node trainer-send.mjs save 1
   node trainer-send.mjs title.refresh`);
@@ -127,6 +133,15 @@ function makeCommand(argv) {
   if (type === "actor.skill.learn") return { type, id: Number(argv[1]), skillId: Number(argv[2]) };
   if (type === "actor.skill.forget") return { type, id: Number(argv[1]), skillId: Number(argv[2]) };
   if (type === "progress.enemyBook.unlock") return { type, ids: argv.slice(1) };
+  if (type === "battle.start") {
+    if (argv.slice(1).some(part => String(part).includes("="))) return { type, ...parseKeyValueArgs(argv.slice(1)) };
+    return {
+      type,
+      troopId: argv[1] === undefined || argv[1] === "" ? undefined : Number(argv[1]),
+      canEscape: argv[2] === undefined ? undefined : parseValue(argv[2]),
+      canLose: argv[3] === undefined ? undefined : parseValue(argv[3])
+    };
+  }
   if (type === "battle.killEnemies") return { type, finish: argv[1] === undefined ? undefined : parseValue(argv[1]) };
   if (type === "battle.escape") return { type };
   if (type === "hangup.info") return { type };
@@ -158,6 +173,8 @@ function makeCommand(argv) {
   if (type === "costume.unlock") return { type, ids: argv.slice(1) };
   if (type === "costume.unlockAll") return { type };
   if (type === "baby.info") return { type };
+  if (type === "baby.flash.info") return { type };
+  if (type === "baby.flash.set") return { type, ...parseKeyValueArgs(argv.slice(1)) };
   if (type === "baby.skill.learn" || type === "baby.skill.forget") {
     const optionStart = argv[3] && String(argv[3]).includes("=") ? 3 : 4;
     const options = parseKeyValueArgs(argv.slice(optionStart));
@@ -195,6 +212,8 @@ function makeCommand(argv) {
   }
   if (type === "map.current") return { type };
   if (type === "map.transfer") return { type, mapId: Number(argv[1]), x: Number(argv[2] || 0), y: Number(argv[3] || 0), direction: Number(argv[4] || 2), fade: Number(argv[5] || 0) };
+  if (type === "map.through.set") return { type, value: parseValue(argv[1] || "true") };
+  if (type === "map.through.toggle") return { type };
   if (type === "commonEvent.run") return { type, id: Number(argv[1]) };
   if (type === "trainer.options.set") {
     return { type, options: parseKeyValueArgs(argv.slice(1)) };
