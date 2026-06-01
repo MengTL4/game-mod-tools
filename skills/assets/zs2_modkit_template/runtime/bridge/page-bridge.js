@@ -5,7 +5,7 @@
   const BABY_PASSIVE_STORE_KEY = "_zs2ModkitBabyPassives";
 
   const bridge = {
-    version: "0.2.31",
+    version: "0.2.32",
     startedAt: new Date().toISOString(),
     startedAtMs: Date.now(),
     processed: Object.create(null),
@@ -750,6 +750,163 @@
       .map((row, index) => ({ ...row, index }));
   }
 
+  function babyActorPrototypeTargets(label) {
+    return babyTargets().flatMap((row, index) => {
+      const actor = row && row.actor;
+      const actorId = actorIdOf(actor) || row && row.key || index + 1;
+      return runtimePrototypeChainTargets(`${label}.actor${actorId}`, actor, 5);
+    });
+  }
+
+  function dataSystem() {
+    return callAlias("dataSystem") || window.$dataSystem || null;
+  }
+
+  function babyTypeId(listName, pattern, fallback) {
+    try {
+      const system = dataSystem();
+      const list = system && system[listName];
+      if (Array.isArray(list)) {
+        const found = list.findIndex(value => pattern.test(String(value || "")));
+        if (found > 0) return found;
+      }
+    } catch (_) {}
+    return fallback;
+  }
+
+  function babyArmorTypeId() {
+    return babyTypeId("armorTypes", /\u5b9d\u5b9d/, 9);
+  }
+
+  function babyWeaponTypeId() {
+    return babyTypeId("weaponTypes", /\u5b9d\u5b9d/, 14);
+  }
+
+  function clonePlainObject(value) {
+    if (!value || typeof value !== "object") return {};
+    try {
+      return JSON.parse(JSON.stringify(value));
+    } catch (_) {
+      return { ...value };
+    }
+  }
+
+  function defaultBabySts() {
+    return { data: "", treeTypes: [], initsp: 0, msp: 0 };
+  }
+
+  function normalizeBabySts(value) {
+    const sts = value && typeof value === "object" ? value : defaultBabySts();
+    if (sts.data == null) sts.data = "";
+    if (!Array.isArray(sts.treeTypes)) sts.treeTypes = [];
+    if (sts.initsp == null) sts.initsp = 0;
+    if (sts.msp == null) sts.msp = 0;
+    return sts;
+  }
+
+  function babyBaseActorIds(actor) {
+    const ids = [];
+    ["baseid", "baseId", "_baseid", "_baseId", "_baseActorId", "baseActorId", "_actorId", "_classId"].forEach((key) => {
+      const id = Math.floor(looseNumber(actor && actor[key]));
+      if (Number.isFinite(id) && id > 0 && !ids.includes(id)) ids.push(id);
+    });
+    [1001, 1].forEach((id) => {
+      if (!ids.includes(id)) ids.push(id);
+    });
+    return ids;
+  }
+
+  function babyActorDataName(actor, fallback) {
+    try {
+      if (actor && typeof actor.name === "function") {
+        const name = actor.name();
+        if (name) return name;
+      }
+    } catch (_) {}
+    return actor && actor._name || fallback || "";
+  }
+
+  function makeBabyActorData(source, actor, id) {
+    const data = clonePlainObject(source);
+    data.id = id;
+    data.name = babyActorDataName(actor, data.name);
+    if (actor && actor._classId != null) data.classId = actor._classId;
+    if (!Array.isArray(data.traits)) data.traits = [];
+    if (!Array.isArray(data.equips)) data.equips = Array.isArray(source && source.equips) ? source.equips.slice() : [];
+    if (!data.meta || typeof data.meta !== "object") data.meta = {};
+    data.sts = normalizeBabySts(data.sts && typeof data.sts === "object" ? data.sts : clonePlainObject(source && source.sts));
+    return data;
+  }
+
+  function ensureBabyActorData(actor) {
+    if (!isBabyActor(actor)) return null;
+    const id = Math.floor(looseNumber(actorIdOf(actor) || actor && actor._actorId));
+    if (!Number.isFinite(id) || id <= 0) return null;
+    const actors = resolveData("actor");
+    if (!actors || typeof actors !== "object") return null;
+    const current = actors[id];
+    let source = current && typeof current === "object" ? current : null;
+    for (const sourceId of babyBaseActorIds(actor)) {
+      if (actors[sourceId] && typeof actors[sourceId] === "object") {
+        source = actors[sourceId];
+        break;
+      }
+    }
+    const data = current && typeof current === "object" ? current : makeBabyActorData(source, actor, id);
+    data.id = id;
+    data.name = babyActorDataName(actor, data.name);
+    if (actor && actor._classId != null) data.classId = actor._classId;
+    if (!Array.isArray(data.traits)) data.traits = Array.isArray(source && source.traits) ? clonePlainObject(source.traits) : [];
+    if (!Array.isArray(data.equips)) data.equips = Array.isArray(source && source.equips) ? source.equips.slice() : [];
+    if (!data.meta || typeof data.meta !== "object") data.meta = clonePlainObject(source && source.meta);
+    data.sts = normalizeBabySts(data.sts && typeof data.sts === "object" ? data.sts : clonePlainObject(source && source.sts));
+    actors[id] = data;
+    return data;
+  }
+
+  function babyEquipSlots(actor) {
+    try {
+      const slots = actor && typeof actor.equipSlots === "function" ? actor.equipSlots() : null;
+      if (Array.isArray(slots)) {
+        return uniqueNumericIds(slots).filter(id => id > 0);
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  function babySlotAllowsEquipment(actor, item) {
+    const slots = babyEquipSlots(actor);
+    const etypeId = Math.floor(looseNumber(item && item.etypeId));
+    return !slots.length || !Number.isFinite(etypeId) || slots.includes(etypeId);
+  }
+
+  function babyCanEquipArmor(actor, armor) {
+    if (!armor) return true;
+    if (equipmentKind(armor) !== "armor") return false;
+    const atypeId = Math.floor(looseNumber(armor.atypeId));
+    return atypeId === babyArmorTypeId() && babySlotAllowsEquipment(actor, armor);
+  }
+
+  function babyCanEquipWeapon(actor, weapon) {
+    if (!weapon) return true;
+    if (equipmentKind(weapon) !== "weapon") return false;
+    const wtypeId = Math.floor(looseNumber(weapon.wtypeId));
+    return wtypeId === babyWeaponTypeId() && babySlotAllowsEquipment(actor, weapon);
+  }
+
+  function babyCanEquipItem(actor, item) {
+    if (!item) return true;
+    const kind = equipmentKind(item);
+    if (kind === "armor") return babyCanEquipArmor(actor, item);
+    if (kind === "weapon") return babyCanEquipWeapon(actor, item);
+    return false;
+  }
+
+  function babyRuntimeMetadataError(error) {
+    const text = String(error && (error.message || error.stack) || error || "");
+    return /sts|ArmorType|WeaponType/.test(text);
+  }
+
   function actionSkillIds(actor) {
     if (!actor) return [];
     if (Array.isArray(actor._bbSkill)) return uniqueNumericIds(actor._bbSkill);
@@ -866,6 +1023,7 @@
 
   function refreshBabyActor(actor, options) {
     const opts = options || {};
+    ensureBabyActorData(actor);
     syncBabyPassiveSkills(actor);
     refreshActor(actor);
     try {
@@ -1096,6 +1254,7 @@
     let x = null;
     let y = null;
     let direction = null;
+    let through = null;
     try {
       if (map && typeof map.mapId === "function") mapId = map.mapId();
       else if (map && map._mapId != null) mapId = map._mapId;
@@ -1105,13 +1264,15 @@
         x = readGameValue(player, "x", "_x");
         y = readGameValue(player, "y", "_y");
         direction = readGameValue(player, "direction", "_direction");
+        through = playerThroughState(player);
       }
     } catch (_) {}
     return {
       mapId,
       x,
       y,
-      direction
+      direction,
+      through
     };
   }
 
@@ -1208,6 +1369,121 @@
       bridge.lastError = String(error && error.stack || error);
       throw error;
     }
+  }
+
+  function playerThroughState(player) {
+    try {
+      if (player && typeof player.isThrough === "function") return !!player.isThrough();
+      if (player && player._through != null) return !!player._through;
+    } catch (_) {}
+    return false;
+  }
+
+  function setPlayerThrough(command, toggle) {
+    const player = resolvePlayer();
+    if (!player) throw new Error("game player is unavailable");
+    const previous = playerThroughState(player);
+    const next = toggle ? !previous : (
+      Object.prototype.hasOwnProperty.call(command || {}, "value") ? toBool(command.value) : true
+    );
+    if (typeof player.setThrough === "function") player.setThrough(next);
+    else player._through = next;
+    refreshMapAndWindows();
+    bumpBattleStat("mapThrough", { through: next });
+    return { previous, through: next, currentMap: currentMapInfo() };
+  }
+
+  function commandBattleTroopId(command) {
+    const direct = Math.floor(looseNumber(command && (command.troopId != null ? command.troopId : command.id)));
+    if (Number.isFinite(direct) && direct > 0) return { troopId: direct, source: "command" };
+    const variableId = command && command.variableId !== undefined && command.variableId !== ""
+      ? Math.floor(requireNumber(command.variableId, "variableId"))
+      : 399;
+    const variables = resolveVariables();
+    let value = null;
+    try {
+      value = variables && typeof variables.value === "function" ? variables.value(variableId) : null;
+    } catch (_) {}
+    const troopId = Math.floor(looseNumber(value));
+    if (Number.isFinite(troopId) && troopId > 0) {
+      return { troopId, source: "variable", variableId, variableValue: value };
+    }
+    throw new Error(`troopId is unavailable; provide troopId or set variable ${variableId}`);
+  }
+
+  function runBattleInterpreterCommand(troopId, canEscape, canLose) {
+    const map = resolveMap();
+    const interpreter = map && map._interpreter;
+    if (!interpreter || typeof interpreter.command301 !== "function") return null;
+    const previousParams = interpreter._params;
+    const previousIndent = interpreter._indent;
+    try {
+      if (!interpreter._branch || typeof interpreter._branch !== "object") interpreter._branch = {};
+      interpreter._params = [0, troopId, canEscape, canLose];
+      interpreter._indent = 0;
+      return { method: "interpreter.command301", result: interpreter.command301() };
+    } finally {
+      interpreter._params = previousParams;
+      interpreter._indent = previousIndent;
+    }
+  }
+
+  function runDirectBattleStart(troopId, canEscape, canLose) {
+    const manager = battleManagerObject();
+    if (!manager || typeof manager.setup !== "function") throw new Error("BattleManager.setup is unavailable");
+    const sceneManager = resolveSceneManager();
+    const sceneBattle = window.Scene_Battle;
+    if (!sceneManager || typeof sceneManager.push !== "function" || typeof sceneBattle !== "function") {
+      throw new Error("Scene_Battle is unavailable");
+    }
+    manager.setup(troopId, canEscape, canLose);
+    if (typeof manager.setEventCallback === "function") manager.setEventCallback(function () {});
+    try {
+      const player = resolvePlayer();
+      if (player && typeof player.makeEncounterCount === "function") player.makeEncounterCount();
+    } catch (_) {}
+    sceneManager.push(sceneBattle);
+    return { method: "BattleManager.setup" };
+  }
+
+  function startSpecifiedBattle(command) {
+    if (isInBattle()) return { started: false, reason: "already in battle", inBattle: true };
+    const { troopId, source, variableId, variableValue } = commandBattleTroopId(command || {});
+    const troops = resolveData("troop");
+    const troop = troops && troops[troopId];
+    if (!troop) throw new Error(`troop ${troopId} not found`);
+    const canEscape = command && Object.prototype.hasOwnProperty.call(command, "canEscape") ? toBool(command.canEscape) : true;
+    const canLose = command && Object.prototype.hasOwnProperty.call(command, "canLose") ? toBool(command.canLose) : true;
+    let startResult = null;
+    let interpreterError = null;
+    try {
+      startResult = runBattleInterpreterCommand(troopId, canEscape, canLose);
+    } catch (error) {
+      interpreterError = error;
+    }
+    if (!startResult) {
+      try {
+        startResult = runDirectBattleStart(troopId, canEscape, canLose);
+      } catch (error) {
+        if (interpreterError) {
+          throw new Error(`battle start failed: ${String(interpreterError && interpreterError.message || interpreterError)}; ${String(error && error.message || error)}`);
+        }
+        throw error;
+      }
+    }
+    refreshMapAndWindows();
+    bumpBattleStat("battleStart", { troopId, source });
+    return {
+      started: true,
+      troopId,
+      name: troop.name || "",
+      method: startResult && startResult.method || "",
+      source,
+      variableId,
+      variableValue,
+      canEscape,
+      canLose
+    };
   }
 
   function readGameValue(object, name, fallbackName) {
@@ -1425,6 +1701,69 @@
       })) {
         count += 1;
         hooked.push(`${target.label}.gainExp`);
+      }
+    });
+
+    uniqueTargets(resolvePrototypeTargets("Game_Actor", ["Game_Actor", "GameActor"]).concat(
+      partyMemberPrototypeTargets("runtime.party"),
+      babyActorPrototypeTargets("runtime.baby")
+    )).forEach((target) => {
+      if (patchMethod(target.object, "refresh", `${target.label}.babyRefresh`, function (original, args) {
+        if (!isBabyActor(this)) return original.apply(this, args);
+        ensureBabyActorData(this);
+        try {
+          return original.apply(this, args);
+        } catch (error) {
+          if (!babyRuntimeMetadataError(error)) throw error;
+          bridge.lastError = String(error && error.stack || error);
+          ensureBabyActorData(this);
+          return undefined;
+        }
+      })) {
+        count += 1;
+        hooked.push(`${target.label}.babyRefresh`);
+      }
+      if (patchMethod(target.object, "isEquipAtypeOk", `${target.label}.babyIsEquipAtypeOk`, function (original, args) {
+        if (!isBabyActor(this)) return original.apply(this, args);
+        ensureBabyActorData(this);
+        const atypeId = Math.floor(looseNumber(args && args[0]));
+        return atypeId === babyArmorTypeId();
+      })) {
+        count += 1;
+        hooked.push(`${target.label}.babyIsEquipAtypeOk`);
+      }
+      if (patchMethod(target.object, "isEquipWtypeOk", `${target.label}.babyIsEquipWtypeOk`, function (original, args) {
+        if (!isBabyActor(this)) return original.apply(this, args);
+        ensureBabyActorData(this);
+        const wtypeId = Math.floor(looseNumber(args && args[0]));
+        return wtypeId === babyWeaponTypeId();
+      })) {
+        count += 1;
+        hooked.push(`${target.label}.babyIsEquipWtypeOk`);
+      }
+      if (patchMethod(target.object, "canEquipArmor", `${target.label}.babyCanEquipArmor`, function (original, args) {
+        if (!isBabyActor(this)) return original.apply(this, args);
+        ensureBabyActorData(this);
+        return babyCanEquipArmor(this, args && args[0]);
+      })) {
+        count += 1;
+        hooked.push(`${target.label}.babyCanEquipArmor`);
+      }
+      if (patchMethod(target.object, "canEquipWeapon", `${target.label}.babyCanEquipWeapon`, function (original, args) {
+        if (!isBabyActor(this)) return original.apply(this, args);
+        ensureBabyActorData(this);
+        return babyCanEquipWeapon(this, args && args[0]);
+      })) {
+        count += 1;
+        hooked.push(`${target.label}.babyCanEquipWeapon`);
+      }
+      if (patchMethod(target.object, "canEquip", `${target.label}.babyCanEquip`, function (original, args) {
+        if (!isBabyActor(this)) return original.apply(this, args);
+        ensureBabyActorData(this);
+        return babyCanEquipItem(this, args && args[0]);
+      })) {
+        count += 1;
+        hooked.push(`${target.label}.babyCanEquip`);
       }
     });
 
@@ -3163,6 +3502,12 @@
       refreshMapAndWindows();
       return { mapId, x, y, direction, fade };
     }
+    if (type === "map.through.set") {
+      return setPlayerThrough(command, false);
+    }
+    if (type === "map.through.toggle") {
+      return setPlayerThrough(command, true);
+    }
     if (type === "commonEvent.run") {
       const temp = resolveTemp();
       if (!temp || typeof temp.reserveCommonEvent !== "function") throw new Error("reserveCommonEvent is unavailable");
@@ -3219,6 +3564,9 @@
     }
     if (type === "battle.escape") {
       return escapeBattle();
+    }
+    if (type === "battle.start") {
+      return startSpecifiedBattle(command);
     }
     if (type === "hangup.info") {
       return hangupSummary();

@@ -220,7 +220,7 @@ State should include:
 
 ```text
 bridgeVersion
-expected version 0.2.31
+expected version 0.2.32
 url
 title
 saveDir
@@ -267,6 +267,7 @@ party.recover
 trainer.options.set { expRate, goldRate, dropRate, noSkillCost, oneHitKill, invincible }
 trainer.options.get
 trainer.hooks.info
+battle.start { troopId, variableId, canEscape, canLose }
 battle.killEnemies
 battle.escape
 hangup.info / hangup.start / hangup.stop / hangup.refresh
@@ -281,6 +282,8 @@ baby.skill.learn / baby.skill.forget / baby.skill.clear
 baby.slots.set / baby.slots.add
 map.current
 map.transfer { mapId, x, y, direction, fade }
+map.through.set { value }
+map.through.toggle
 commonEvent.run { id }
 save { id }
 title.refresh
@@ -291,9 +294,12 @@ CLI aliases may accept positional or key-value forms:
 ```powershell
 node .\tools\trainer-send.mjs item.add item 5 10
 node .\tools\trainer-send.mjs trainer.options.set expRate=10 noSkillCost=true
+node .\tools\trainer-send.mjs battle.start 2
+node .\tools\trainer-send.mjs battle.start variableId=399
 node .\tools\trainer-send.mjs talent.points.add party 10
 node .\tools\trainer-send.mjs baby.skill.learn 1001 1890 passive
 node .\tools\trainer-send.mjs baby.slots.set 1001 5
+node .\tools\trainer-send.mjs map.through.set true
 node .\tools\trainer-send.mjs offlineHunt.run mapId=31 times=10 enemyBook=true
 ```
 

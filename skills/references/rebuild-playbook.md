@@ -302,7 +302,7 @@ actor.level.set / actor.exp.add / actor.param.add / actor.vitals.set / actor.nam
 actor.skill.learn / actor.skill.forget
 party.recover
 trainer.options.set / trainer.options.get / trainer.hooks.info
-battle.killEnemies / battle.escape
+battle.start / battle.killEnemies / battle.escape
 offlineHunt.info / offlineHunt.preview / offlineHunt.run
 hangup.info / hangup.start / hangup.stop / hangup.refresh
 talent.points.info / talent.points.set / talent.points.add
@@ -311,7 +311,7 @@ costume.info / costume.unlock / costume.unlockAll
 baby.info
 baby.skill.learn / baby.skill.forget / baby.skill.clear
 baby.slots.set / baby.slots.add
-map.current / map.transfer
+map.current / map.transfer / map.through.set / map.through.toggle
 commonEvent.run
 progress.enemyBook.unlock
 save

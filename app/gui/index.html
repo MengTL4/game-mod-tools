@@ -487,6 +487,7 @@
             <div class="preset-row map-actions">
               <button id="recordPositionBtn">记录当前位置</button>
               <button id="returnPositionBtn">返回记录点</button>
+              <button id="mapThroughBtn" class="toggle-btn">穿墙</button>
               <span id="recordedPosition" class="inline-status">未记录</span>
             </div>
             <div id="mapHint" class="hint"></div>
@@ -546,6 +547,14 @@
               <button id="battleEscapeBtn">逃跑</button>
               <button id="partyRecoverBtn">队伍恢复</button>
             </div>
+            <div class="row compact-id-row">
+              <label>
+                <span>敌群ID</span>
+                <input id="battleTroopId" type="text" inputmode="numeric" list="offlineHuntTroopOptions" placeholder="空=变量399">
+              </label>
+              <button id="battleStartBtn">指定战斗</button>
+            </div>
+            <div id="battleTroopHint" class="hint"></div>
             <div id="battleState" class="hint"></div>
           </article>
 
