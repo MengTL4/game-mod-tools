@@ -19,7 +19,7 @@ declare const nw: any;
   const costumeDataPath = path.join(rootDir, "www", "data", "huanzhuang.json");
   const iconDir = path.join(process.cwd(), "icons");
   const iconSetPath = path.join(rootDir, "www", "img", "system", "IconSet.png");
-  const EXPECTED_BRIDGE_VERSION = "0.2.33";
+  const EXPECTED_BRIDGE_VERSION = "0.2.34";
 
   const $ = (id: string): any => document.getElementById(id);
   const dom = {
@@ -2380,6 +2380,7 @@ declare const nw: any;
       `金币 ${formatNumber(last.gold || 0)}`,
       last.autoSell && last.autoSell.gold ? `自动卖 ${formatNumber(last.autoSell.gold)} 金币` : "",
       last.blockedDrops && last.blockedDrops.count ? `屏蔽 ${formatNumber(last.blockedDrops.count)} 件` : "",
+      last.skippedDrops && last.skippedDrops.count ? `跳过 ${formatNumber(last.skippedDrops.count)} 件` : "",
       `掉落 ${formatNumber((last.dropSummary || []).length)} 种`,
       last.enemyBook && last.enemyBook.count ? `图鉴 ${last.enemyBook.count}` : "",
       last.saved ? `已保存 ${last.saved.id}` : ""
@@ -2396,6 +2397,9 @@ declare const nw: any;
     const blocked = compactListHtml(last.blockedDrops && last.blockedDrops.summary, "无屏蔽", (row) =>
       `<span class="result-chip">${escapeHtml(itemKindLabels[row.kind] || row.kind || "")}:${escapeHtml(dropChipName(row))} x${formatNumber(row.count)}</span>`
     , 16);
+    const skipped = compactListHtml(last.skippedDrops && last.skippedDrops.summary, "无跳过", (row) =>
+      `<span class="result-chip">${escapeHtml(itemKindLabels[row.kind] || row.kind || "")}:${escapeHtml(dropChipName(row))} x${formatNumber(row.count)}</span>`
+    , 16);
     const kindCounts = last.dropKindCounts || {};
     const dropKinds = [
       `物品 ${formatNumber(kindCounts.item || 0)} 种`,
@@ -2408,6 +2412,7 @@ declare const nw: any;
       <div><strong>掉落</strong>${drops}</div>
       <div><strong>自动卖出</strong><span>${formatNumber(last.autoSell && last.autoSell.gold || 0)} 金币</span>${sold}</div>
       <div><strong>已屏蔽</strong>${blocked}</div>
+      <div><strong>已跳过</strong>${skipped}</div>
     `;
   }
 

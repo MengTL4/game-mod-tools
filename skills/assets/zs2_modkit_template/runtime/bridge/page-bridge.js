@@ -5,7 +5,7 @@
   const BABY_PASSIVE_STORE_KEY = "_zs2ModkitBabyPassives";
 
   const bridge = {
-    version: "0.2.33",
+    version: "0.2.34",
     startedAt: new Date().toISOString(),
     startedAtMs: Date.now(),
     processed: Object.create(null),
@@ -281,17 +281,40 @@
     return Array.isArray(data) ? data : [];
   }
 
+  function runtimeDataTable(kind) {
+    const runtime = resolveData(kind);
+    return Array.isArray(runtime) ? runtime : [];
+  }
+
+  function requireDataEntry(kind, id, label) {
+    const number = Math.floor(requireNumber(id, label || `${kind} id`));
+    if (!Number.isFinite(number) || number <= 0) throw new Error(`${label || kind} must be a positive id`);
+    const table = dataTable(kind);
+    const entry = table && table[number];
+    if (!entry) throw new Error(`${kind} ${number} not found`);
+    return { id: number, entry };
+  }
+
   function mapDataFileName(mapId) {
-    const id = Math.max(1, Math.floor(Number(mapId) || 0));
+    const id = Math.max(0, Math.floor(Number(mapId) || 0));
     return `Map${String(id).padStart(3, "0")}.json`;
   }
 
   function localMapData(mapId) {
+    const id = Math.floor(Number(mapId) || 0);
+    if (id <= 0) return null;
     return readDataJson(mapDataFileName(mapId));
   }
 
   function resolveCommonEvents() {
     return callAlias("dataCommonEvents") || window.$dataCommonEvents || null;
+  }
+
+  function commonEventTable() {
+    const runtime = resolveCommonEvents();
+    if (Array.isArray(runtime)) return runtime;
+    const data = readDataJson("CommonEvents.json");
+    return Array.isArray(data) ? data : [];
   }
 
   function resolveDataManager() {
@@ -637,6 +660,14 @@
     };
   }
 
+  function clampCurrentValue(value, maxValue, fallbackMax) {
+    const raw = Math.floor(requireNumber(value, "value"));
+    const max = Number.isFinite(Number(maxValue)) && Number(maxValue) > 0
+      ? Number(maxValue)
+      : fallbackMax;
+    return Math.min(max, Math.max(0, raw));
+  }
+
   function compactNumberMap(value, limit) {
     const result = {};
     const max = Math.max(1, Math.min(200, Math.floor(Number(limit || 24))));
@@ -760,6 +791,12 @@
 
   function dataSystem() {
     return callAlias("dataSystem") || window.$dataSystem || null;
+  }
+
+  function systemListLimit(name) {
+    const system = dataSystem();
+    const list = system && system[name];
+    return Array.isArray(list) && list.length > 0 ? list.length - 1 : 0;
   }
 
   function babyTypeId(listName, pattern, fallback) {
@@ -1157,6 +1194,8 @@
     if (!Array.isArray(actor._bbSkill)) actor._bbSkill = actionSkillIds(actor);
     const slotIndex = babyActionSlotIndex(command);
     if (slotIndex != null) {
+      const slotCount = Math.max(1, babyLearnSlotInfo(actor).slots || actor._bbSkill.length || 1);
+      if (slotIndex >= slotCount) throw new Error(`slot ${slotIndex + 1} exceeds baby skill slots ${slotCount}`);
       const changed = Math.floor(looseNumber(actor._bbSkill[slotIndex])) !== id;
       actor._bbSkill[slotIndex] = id;
       rebuildBabyActionList(actor);
@@ -1182,7 +1221,7 @@
   function learnBabySkill(command) {
     const row = resolveBabyTarget(command || {});
     const actor = row.actor;
-    const skillId = Math.floor(requireNumber(command.skillId || command.id2 || command.skill, "skillId"));
+    const { id: skillId } = requireDataEntry("skill", command.skillId || command.id2 || command.skill, "skillId");
     const mode = babySkillMode(command, skillId);
     const changed = mode === "passive"
       ? learnPassiveBabySkill(actor, skillId, command)
@@ -1194,7 +1233,7 @@
   function forgetBabySkill(command) {
     const row = resolveBabyTarget(command || {});
     const actor = row.actor;
-    const skillId = Math.floor(requireNumber(command.skillId || command.id2 || command.skill, "skillId"));
+    const { id: skillId } = requireDataEntry("skill", command.skillId || command.id2 || command.skill, "skillId");
     const requestedMode = String(command && (command.mode || command.skillMode) || "auto").toLowerCase();
     const actionHad = actionSkillIds(actor).includes(skillId);
     const mode = requestedMode === "auto" || !requestedMode ? (actionHad ? "action" : babySkillMode(command, skillId)) : babySkillMode(command, skillId);
@@ -2166,6 +2205,13 @@
     return [];
   }
 
+  function runtimeDropTable(kind) {
+    if (kind === "item") return runtimeDataTable("item");
+    if (kind === "weapon") return runtimeDataTable("weapon");
+    if (kind === "armor") return runtimeDataTable("armor");
+    return [];
+  }
+
   function itemKindOfObject(item) {
     if (!item) return "";
     const id = Number(item.id);
@@ -2200,6 +2246,13 @@
 
   function addDropGroup(groups, item, count) {
     const summary = itemSummary(item);
+    if (!summary || !summary.id) return;
+    const key = itemKey(summary);
+    if (!groups[key]) groups[key] = { ...summary, count: 0 };
+    groups[key].count += count || 1;
+  }
+
+  function addDropSummaryGroup(groups, summary, count) {
     if (!summary || !summary.id) return;
     const key = itemKey(summary);
     if (!groups[key]) groups[key] = { ...summary, count: 0 };
@@ -2522,6 +2575,7 @@
     const dataManager = resolveDataManager();
     if (!dataManager || typeof dataManager.saveGame !== "function") throw new Error("saveGame is unavailable");
     const id = Math.floor(requireNumber(savefileId || 1, "id"));
+    if (id <= 0) throw new Error("save slot id must be positive");
     const result = dataManager.saveGame(id);
     return { id, result: String(result) };
   }
@@ -2563,6 +2617,7 @@
     const dropGroups = Object.create(null);
     const autoSellGroups = Object.create(null);
     const blockedDropGroups = Object.create(null);
+    const skippedDropGroups = Object.create(null);
     const enemyIds = [];
     const lootConfig = offlineLootConfig(command);
     let baseExp = 0;
@@ -2570,6 +2625,7 @@
     let autoSellGold = 0;
     let autoSellCount = 0;
     let blockedDropCount = 0;
+    let skippedDropCount = 0;
     let runtimeCount = 0;
     let dataCount = 0;
 
@@ -2617,8 +2673,13 @@
       if (typeof party.gainGold === "function") party.gainGold(gold);
       else party._gold = Math.max(0, Number(party._gold || 0) + gold);
       Object.values(dropGroups).forEach((drop) => {
-        const item = dropTable(drop.kind)[drop.id];
-        if (item && typeof party.gainItem === "function") party.gainItem(item, drop.count);
+        const item = runtimeDropTable(drop.kind)[drop.id];
+        if (item && typeof party.gainItem === "function") {
+          party.gainItem(item, drop.count);
+        } else {
+          skippedDropCount += Number(drop.count || 0);
+          addDropSummaryGroup(skippedDropGroups, drop, drop.count);
+        }
       });
     });
 
@@ -2663,6 +2724,11 @@
       blockedDrops: {
         count: blockedDropCount,
         summary: Object.values(blockedDropGroups).sort((a, b) => b.count - a.count).slice(0, 80)
+      },
+      skippedDrops: {
+        count: skippedDropCount,
+        reason: skippedDropCount > 0 ? "runtime item data unavailable" : "",
+        summary: Object.values(skippedDropGroups).sort((a, b) => b.count - a.count).slice(0, 80)
       },
       lootOptions: {
         autoSellQualities: Array.from(lootConfig.autoSellQualities),
@@ -3406,8 +3472,14 @@
       const player = resolvePlayer();
       if (!player) throw new Error("game player is unavailable");
       const mapId = Math.floor(requireNumber(command.mapId, "mapId"));
+      if (mapId <= 0) throw new Error("mapId must be positive");
+      const mapInfo = dataTable("mapInfo");
+      const mapData = localMapData(mapId);
+      if ((Array.isArray(mapInfo) && mapInfo.length && !mapInfo[mapId]) && !mapData) throw new Error(`map ${mapId} not found`);
       const x = Math.floor(requireNumber(command.x, "x"));
       const y = Math.floor(requireNumber(command.y, "y"));
+      if (mapData && Number(mapData.width) > 0 && (x < 0 || x >= Number(mapData.width))) throw new Error(`x ${x} is outside map ${mapId}`);
+      if (mapData && Number(mapData.height) > 0 && (y < 0 || y >= Number(mapData.height))) throw new Error(`y ${y} is outside map ${mapId}`);
       const direction = command.direction === undefined || command.direction === ""
         ? 2
         : Math.floor(requireNumber(command.direction, "direction"));
@@ -3431,14 +3503,15 @@
       return setPlayerThrough(command, true);
     }
     if (type === "commonEvent.run") {
+      const id = Math.floor(requireNumber(command.id, "id"));
+      const events = commonEventTable();
+      const eventData = events && events[id];
+      if (!eventData) throw new Error(`common event ${id} not found`);
       const temp = resolveTemp();
       if (!temp || typeof temp.reserveCommonEvent !== "function") throw new Error("reserveCommonEvent is unavailable");
-      const id = Math.floor(requireNumber(command.id, "id"));
       temp.reserveCommonEvent(id);
       const map = resolveMap();
       if (map && typeof map.requestRefresh === "function") map.requestRefresh();
-      const events = resolveCommonEvents();
-      const eventData = events && events[id];
       return { id, name: eventData && eventData.name || "" };
     }
     if (type === "gold.add") {
@@ -3461,24 +3534,35 @@
     if (type === "variable.set") {
       const variables = resolveVariables();
       if (!variables || typeof variables.setValue !== "function") throw new Error("game variables are unavailable");
-      variables.setValue(Math.floor(requireNumber(command.id, "id")), command.value);
+      const id = Math.floor(requireNumber(command.id, "id"));
+      if (id <= 0) throw new Error("variable id must be positive");
+      const maxVariableId = systemListLimit("variables");
+      if (maxVariableId > 0 && id > maxVariableId) throw new Error(`variable id ${id} exceeds system limit ${maxVariableId}`);
+      variables.setValue(id, command.value);
       return { id: command.id, value: command.value };
     }
     if (type === "switch.set") {
       const switches = resolveSwitches();
       if (!switches || typeof switches.setValue !== "function") throw new Error("game switches are unavailable");
-      switches.setValue(Math.floor(requireNumber(command.id, "id")), !!command.value);
+      const id = Math.floor(requireNumber(command.id, "id"));
+      if (id <= 0) throw new Error("switch id must be positive");
+      const maxSwitchId = systemListLimit("switches");
+      if (maxSwitchId > 0 && id > maxSwitchId) throw new Error(`switch id ${id} exceeds system limit ${maxSwitchId}`);
+      switches.setValue(id, !!command.value);
       return { id: command.id, value: !!command.value };
     }
     if (type === "item.add") {
       const party = resolveParty();
       if (!party || typeof party.gainItem !== "function") throw new Error("party gainItem is unavailable");
-      const kind = String(command.kind || "item");
+      const kind = normalizeDropKind(command.kind || "item");
+      if (!kind) throw new Error(`unsupported item kind: ${command.kind}`);
       const data = resolveData(kind);
       if (!data) throw new Error(`${kind} data is unavailable`);
       const item = data[Math.floor(requireNumber(command.id, "id"))];
       if (!item) throw new Error(`${kind} ${command.id} not found`);
-      party.gainItem(item, Math.floor(requireNumber(command.amount, "amount")));
+      const amount = Math.floor(requireNumber(command.amount, "amount"));
+      if (!Number.isFinite(amount) || amount === 0) throw new Error("amount must be a non-zero number");
+      party.gainItem(item, amount);
       return { kind, id: command.id, amount: command.amount };
     }
     if (type === "battle.killEnemies") {
@@ -3530,7 +3614,7 @@
     if (type === "actor.add" || type === "actor.unlock") {
       const party = resolveParty();
       if (!party || typeof party.addActor !== "function") throw new Error("party addActor is unavailable");
-      const id = Math.floor(requireNumber(command.id, "id"));
+      const { id } = requireDataEntry("actor", command.id, "actor id");
       party.addActor(id);
       refreshMapAndWindows();
       return { unlocked: true, actor: actorInfo(resolveActor(id)) };
@@ -3552,7 +3636,11 @@
     }
     if (type === "actor.level.set") {
       const actor = requireActor(command.id);
-      const level = Math.max(1, Math.floor(requireNumber(command.level, "level")));
+      let maxLevel = 999;
+      try {
+        if (typeof actor.maxLevel === "function") maxLevel = Math.max(1, Math.floor(Number(actor.maxLevel() || maxLevel)));
+      } catch (_) {}
+      const level = Math.min(maxLevel, Math.max(1, Math.floor(requireNumber(command.level, "level"))));
       if (typeof actor.changeLevel === "function") actor.changeLevel(level, false);
       else actor._level = level;
       refreshActor(actor);
@@ -3576,18 +3664,18 @@
     if (type === "actor.vitals.set") {
       const actor = requireActor(command.id);
       if (command.hp !== undefined && command.hp !== "") {
-        const hp = Math.floor(requireNumber(command.hp, "hp"));
+        const hp = clampCurrentValue(command.hp, actor.mhp, 999999999);
         if (typeof actor.setHp === "function") actor.setHp(hp);
         else actor._hp = hp;
       }
       if (command.mp !== undefined && command.mp !== "") {
-        const mp = Math.floor(requireNumber(command.mp, "mp"));
+        const mp = clampCurrentValue(command.mp, actor.mmp, 999999999);
         if (typeof actor.setMp === "function") withNoCostSuppressed(() => actor.setMp(mp));
         else actor._mp = mp;
         resetNoCostBaselines();
       }
       if (command.tp !== undefined && command.tp !== "") {
-        const tp = Math.floor(requireNumber(command.tp, "tp"));
+        const tp = clampCurrentValue(command.tp, 100, 100);
         if (typeof actor.setTp === "function") withNoCostSuppressed(() => actor.setTp(tp));
         else actor._tp = tp;
         resetNoCostBaselines();
@@ -3599,6 +3687,7 @@
     if (type === "actor.param.add") {
       const actor = requireActor(command.id);
       const paramId = Math.floor(requireNumber(command.paramId, "paramId"));
+      if (paramId < 0 || paramId > 7) throw new Error("paramId must be between 0 and 7");
       const value = Math.floor(requireNumber(command.value, "value"));
       if (typeof actor.addParam === "function") actor.addParam(paramId, value);
       else {
@@ -3620,7 +3709,7 @@
     }
     if (type === "actor.skill.learn") {
       const actor = requireActor(command.id);
-      const skillId = Math.floor(requireNumber(command.skillId, "skillId"));
+      const { id: skillId } = requireDataEntry("skill", command.skillId, "skillId");
       if (typeof actor.learnSkill !== "function") throw new Error("actor learnSkill is unavailable");
       actor.learnSkill(skillId);
       refreshActor(actor);
@@ -3629,7 +3718,7 @@
     }
     if (type === "actor.skill.forget") {
       const actor = requireActor(command.id);
-      const skillId = Math.floor(requireNumber(command.skillId, "skillId"));
+      const { id: skillId } = requireDataEntry("skill", command.skillId, "skillId");
       if (typeof actor.forgetSkill !== "function") throw new Error("actor forgetSkill is unavailable");
       actor.forgetSkill(skillId);
       refreshActor(actor);
