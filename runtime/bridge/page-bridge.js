@@ -5,7 +5,7 @@
   const BABY_PASSIVE_STORE_KEY = "_zs2ModkitBabyPassives";
 
   const bridge = {
-    version: "0.2.36",
+    version: "0.2.37",
     startedAt: new Date().toISOString(),
     startedAtMs: Date.now(),
     processed: Object.create(null),
@@ -2784,7 +2784,6 @@
       currentMap: mapInfo,
       partyMembers: getPartyMembers(party).map(actorInfo).filter(Boolean),
       trainerOptions: { ...bridge.options },
-      babyFlash: babyFlashInfo(),
       baby: babySummary(),
       progress: progressSummary(),
       hangup: hangupSummary(),
@@ -2862,60 +2861,6 @@
       return true;
     }
     return false;
-  }
-
-  function babyFlashInfo() {
-    const config = resolveConfigManager();
-    if (!config) {
-      return {
-        available: false,
-        goldEnabled: false,
-        silverEnabled: false,
-        goldClose: null,
-        silverClose: null,
-        baobaoJiaShu: null,
-        outBB: null
-      };
-    }
-    const goldClose = config.JinflashClose;
-    const silverClose = config.YinflashClose;
-    const goldClosed = toBool(goldClose);
-    const silverClosed = toBool(silverClose);
-    return {
-      available: true,
-      goldEnabled: !goldClosed,
-      silverEnabled: !silverClosed,
-      goldClose: goldClose == null ? null : goldClosed,
-      silverClose: silverClose == null ? null : silverClosed,
-      baobaoJiaShu: config.baobaoJiaShu == null ? null : config.baobaoJiaShu,
-      outBB: config._OutBB == null ? null : config._OutBB
-    };
-  }
-
-  function setBabyFlashConfig(command) {
-    const config = requireConfigManager();
-    const has = (key) => Object.prototype.hasOwnProperty.call(command, key);
-    const changed = {};
-    if (has("goldClose") || has("jinClose")) {
-      config.JinflashClose = toBool(has("goldClose") ? command.goldClose : command.jinClose);
-      changed.goldClose = !!config.JinflashClose;
-    } else if (has("gold") || has("goldEnabled") || has("jin")) {
-      const enabled = has("gold") ? command.gold : has("goldEnabled") ? command.goldEnabled : command.jin;
-      config.JinflashClose = !toBool(enabled);
-      changed.goldClose = !!config.JinflashClose;
-    }
-    if (has("silverClose") || has("yinClose")) {
-      config.YinflashClose = toBool(has("silverClose") ? command.silverClose : command.yinClose);
-      changed.silverClose = !!config.YinflashClose;
-    } else if (has("silver") || has("silverEnabled") || has("yin")) {
-      const enabled = has("silver") ? command.silver : has("silverEnabled") ? command.silverEnabled : command.yin;
-      config.YinflashClose = !toBool(enabled);
-      changed.silverClose = !!config.YinflashClose;
-    }
-    const saved = command.save === false || command.save === "false" || command.save === 0 || command.save === "0"
-      ? false
-      : saveConfig();
-    return { changed, saved, flash: babyFlashInfo() };
   }
 
   function sanitizeEnemyWeaknessStore() {
@@ -3517,12 +3462,6 @@
     }
     if (type === "costume.unlockAll") {
       return unlockCostumeIds(localCostumeEntries().map(entry => entry.id), { all: true });
-    }
-    if (type === "baby.flash.info") {
-      return babyFlashInfo();
-    }
-    if (type === "baby.flash.set") {
-      return setBabyFlashConfig(command);
     }
     if (type === "baby.info") {
       return babySummary();

@@ -19,7 +19,7 @@ declare const nw: any;
   const costumeDataPath = path.join(rootDir, "www", "data", "huanzhuang.json");
   const iconDir = path.join(process.cwd(), "icons");
   const iconSetPath = path.join(rootDir, "www", "img", "system", "IconSet.png");
-  const EXPECTED_BRIDGE_VERSION = "0.2.36";
+  const EXPECTED_BRIDGE_VERSION = "0.2.37";
 
   const $ = (id: string): any => document.getElementById(id);
   const dom = {
@@ -61,7 +61,6 @@ declare const nw: any;
     babyMetric: $("babyMetric"),
     babyHint: $("babyHint"),
     babyState: $("babyState"),
-    babyFlashState: $("babyFlashState"),
     babyList: $("babyList"),
     talentPointMetric: $("talentPointMetric"),
     talentState: $("talentState"),
@@ -2017,37 +2016,6 @@ declare const nw: any;
     return command;
   }
 
-  function updateBabyFlashPanel(flash) {
-    const available = !!(flash && flash.available);
-    const goldInput = $("babyFlashGold");
-    const silverInput = $("babyFlashSilver");
-    goldInput.disabled = !available;
-    silverInput.disabled = !available;
-    $("babyFlashApplyBtn").disabled = !available;
-    if (available) {
-      goldInput.checked = !!flash.goldEnabled;
-      silverInput.checked = !!flash.silverEnabled;
-      dom.babyFlashState.textContent = [
-        `金闪${flash.goldEnabled ? "允许" : "关闭"}`,
-        `银闪${flash.silverEnabled ? "允许" : "关闭"}`,
-        `配置 ${flash.goldClose === null ? "null" : flash.goldClose ? "J关" : "J开"}/${flash.silverClose === null ? "null" : flash.silverClose ? "Y关" : "Y开"}`
-      ].join(" / ");
-      return;
-    }
-    goldInput.checked = false;
-    silverInput.checked = false;
-    dom.babyFlashState.textContent = "等待运行时配置";
-  }
-
-  function setBabyFlash() {
-    sendCommand({
-      type: "baby.flash.set",
-      gold: !!$("babyFlashGold").checked,
-      silver: !!$("babyFlashSilver").checked,
-      save: true
-    });
-  }
-
   function talentCommandBase(type, party = false) {
     const command: any = {
       type,
@@ -2228,7 +2196,6 @@ declare const nw: any;
       dom.babyMetric.textContent = "0";
       dom.babyHint.textContent = "";
       dom.babyState.textContent = "";
-      updateBabyFlashPanel(null);
       dom.babyList.innerHTML = "";
       $("babyLearnSlots").value = "";
       updateBabyOptions(null);
@@ -2290,7 +2257,6 @@ declare const nw: any;
     const options = fresh ? (state.trainerOptions || {}) : {};
     if (fresh) updateOptionInputs(options);
     updateBattleButtons(options, fresh && state.hooksPatched, fresh ? state.rateStats : null, fresh ? state.battleStats : null);
-    updateBabyFlashPanel(fresh ? state.babyFlash : null);
     renderBabyList(fresh ? state.baby : null);
     updateProgressPanel(fresh ? state.progress : null);
     updateOfflineHuntPanel(fresh ? state.offlineHunt : null);
@@ -2698,8 +2664,6 @@ declare const nw: any;
       if (id !== undefined) command.id = id;
       sendCommand(command);
     });
-    $("babyFlashApplyBtn").addEventListener("click", setBabyFlash);
-    $("babyFlashInfoBtn").addEventListener("click", () => sendCommand({ type: "baby.flash.info" }));
     $("unlockEnemyBookBtn").addEventListener("click", () => sendCommand({ type: "progress.enemyBook.unlock" }));
     $("ratesApplyBtn").addEventListener("click", () => sendOptions({
       expRate: numberValue("expRate", 1),
