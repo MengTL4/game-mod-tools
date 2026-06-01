@@ -19,7 +19,7 @@ declare const nw: any;
   const costumeDataPath = path.join(rootDir, "www", "data", "huanzhuang.json");
   const iconDir = path.join(process.cwd(), "icons");
   const iconSetPath = path.join(rootDir, "www", "img", "system", "IconSet.png");
-  const EXPECTED_BRIDGE_VERSION = "0.2.32";
+  const EXPECTED_BRIDGE_VERSION = "0.2.33";
 
   const $ = (id: string): any => document.getElementById(id);
   const dom = {

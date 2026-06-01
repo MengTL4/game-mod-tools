@@ -5,7 +5,7 @@
   const BABY_PASSIVE_STORE_KEY = "_zs2ModkitBabyPassives";
 
   const bridge = {
-    version: "0.2.32",
+    version: "0.2.33",
     startedAt: new Date().toISOString(),
     startedAtMs: Date.now(),
     processed: Object.create(null),
@@ -2341,39 +2341,6 @@
     return drops;
   }
 
-  function markOfflineEnemyDefeated(enemy) {
-    if (!enemy) return false;
-    try {
-      if (typeof enemy.isHidden === "function" && enemy.isHidden()) return false;
-    } catch (_) {}
-    try {
-      if (typeof enemy.setHp === "function") enemy.setHp(0);
-      else enemy._hp = 0;
-      if (typeof enemy.die === "function") enemy.die();
-      if (typeof enemy.refresh === "function") enemy.refresh();
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function createOfflineTroop(troopId) {
-    const sourceTroop = resolveTroop();
-    const Constructor = sourceTroop && sourceTroop.constructor || window.Game_Troop;
-    if (typeof Constructor !== "function") return null;
-    try {
-      const troop = new Constructor();
-      if (typeof troop.setup !== "function") return null;
-      troop.setup(troopId);
-      const members = typeof troop.members === "function" ? troop.members() : troop._enemies || [];
-      members.forEach(markOfflineEnemyDefeated);
-      return troop;
-    } catch (error) {
-      bridge.offlineHuntStats.runtimeFallbackError = String(error && error.stack || error);
-      return null;
-    }
-  }
-
   function troopDataPreview(troopId) {
     const troops = dataTable("troop");
     const enemies = dataTable("enemy");
@@ -2408,37 +2375,6 @@
     };
   }
 
-  function runtimeTroopReward(troopId) {
-    const troop = createOfflineTroop(troopId);
-    if (!troop) return null;
-    try {
-      const members = typeof troop.members === "function" ? troop.members() : troop._enemies || [];
-      const enemyIds = members
-        .filter(enemy => {
-          try {
-            return !(typeof enemy.isHidden === "function" && enemy.isHidden());
-          } catch (_) {
-            return true;
-          }
-        })
-        .map(enemy => {
-          try {
-            return typeof enemy.enemyId === "function" ? enemy.enemyId() : enemy._enemyId;
-          } catch (_) {
-            return null;
-          }
-        })
-        .filter(Boolean);
-      const exp = typeof troop.expTotal === "function" ? Number(troop.expTotal() || 0) : 0;
-      const gold = typeof troop.goldTotal === "function" ? Number(troop.goldTotal() || 0) : 0;
-      const items = typeof troop.makeDropItems === "function" ? troop.makeDropItems().filter(Boolean) : [];
-      return { exp, gold, items, enemyIds, source: "runtime" };
-    } catch (error) {
-      bridge.offlineHuntStats.runtimeFallbackError = String(error && error.stack || error);
-      return null;
-    }
-  }
-
   function dataTroopReward(troopId) {
     const preview = troopDataPreview(troopId);
     if (!preview) return null;
@@ -2465,23 +2401,9 @@
   }
 
   function offlineTroopReward(troopId) {
-    const runtimeReward = runtimeTroopReward(troopId);
-    const dataReward = dataTroopReward(troopId);
-    if (runtimeReward) {
-      const runtimeEnemyIds = Array.isArray(runtimeReward.enemyIds) ? runtimeReward.enemyIds : [];
-      const dataEnemyIds = dataReward && Array.isArray(dataReward.enemyIds) ? dataReward.enemyIds : [];
-      return {
-        exp: runtimeReward.exp,
-        gold: runtimeReward.gold,
-        // The game's custom drop plugin is tied to real battle context. Temporary
-        // Game_Troop drops can go stale after the first offline run, so simulate
-        // drops from data while keeping runtime exp/gold totals.
-        items: dataReward ? dataReward.items : runtimeReward.items,
-        enemyIds: uniqueNumericIds(runtimeEnemyIds.concat(dataEnemyIds)),
-        source: dataReward ? "runtime+dataDrops" : "runtime"
-      };
-    }
-    return dataReward;
+    // Keep offline hunts data-only. Instantiating a temporary Game_Troop can run
+    // enemy/drop/battle plugin code outside a real battle and poison later saves.
+    return dataTroopReward(troopId);
   }
 
   function offlineEncounterList(mapId, regionId) {
