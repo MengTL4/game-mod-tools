@@ -31,6 +31,7 @@ function usage() {
   node trainer-send.mjs party.recover
   node trainer-send.mjs trainer.options.set expRate=2 goldRate=2 dropRate=3 skillRate=5 noSkillCost=true oneHitKill=true invincible=true
   node trainer-send.mjs trainer.hooks.info
+  node trainer-send.mjs battle.start troopId=192
   node trainer-send.mjs battle.killEnemies
   node trainer-send.mjs battle.escape
   node trainer-send.mjs hangup.info
@@ -53,6 +54,8 @@ function usage() {
   node trainer-send.mjs fishing.qualifications.unlock
   node trainer-send.mjs fishing.catch 1 5
   node trainer-send.mjs map.current
+  node trainer-send.mjs map.through.set true
+  node trainer-send.mjs map.through.toggle
   node trainer-send.mjs map.transfer 5 10 12
   node trainer-send.mjs commonEvent.run 10
   node trainer-send.mjs save 1
@@ -119,6 +122,10 @@ function makeCommand(argv) {
   if (type === "actor.skill.learn") return { type, id: Number(argv[1]), skillId: Number(argv[2]) };
   if (type === "actor.skill.forget") return { type, id: Number(argv[1]), skillId: Number(argv[2]) };
   if (type === "progress.enemyBook.unlock") return { type, ids: argv.slice(1) };
+  if (type === "battle.start") {
+    if (argv.slice(1).some(part => String(part).includes("="))) return { type, ...parseKeyValueArgs(argv.slice(1)) };
+    return { type, troopId: argv[1] === undefined ? undefined : Number(argv[1]), canEscape: argv[2] === undefined ? true : parseValue(argv[2]), canLose: argv[3] === undefined ? true : parseValue(argv[3]) };
+  }
   if (type === "battle.killEnemies") return { type, finish: argv[1] === undefined ? undefined : parseValue(argv[1]) };
   if (type === "battle.escape") return { type };
   if (type === "hangup.info") return { type };
@@ -152,6 +159,8 @@ function makeCommand(argv) {
   if (type === "fishing.qualifications.unlock") return { type };
   if (type === "fishing.catch") return { type, pointId: Number(argv[1] || 1), times: Number(argv[2] || 1) };
   if (type === "map.current") return { type };
+  if (type === "map.through.set") return { type, value: parseValue(argv[1] || "true") };
+  if (type === "map.through.toggle") return { type };
   if (type === "map.transfer") return { type, mapId: Number(argv[1]), x: Number(argv[2] || 0), y: Number(argv[3] || 0), direction: Number(argv[4] || 2), fade: Number(argv[5] || 0) };
   if (type === "commonEvent.run") return { type, id: Number(argv[1]) };
   if (type === "trainer.options.set") {

@@ -18,7 +18,7 @@ declare const nw: any;
   const guiCachePath = path.join(dataDir, "_gui-cache.json");
   const iconDir = path.join(process.cwd(), "icons");
   const iconSetPath = path.join(rootDir, "www", "img", "system", "IconSet.png");
-  const EXPECTED_BRIDGE_VERSION = "0.2.28";
+  const EXPECTED_BRIDGE_VERSION = "0.2.29";
   const GUI_CACHE_VERSION = 1;
 
   const $ = (id: string): any => document.getElementById(id);
@@ -942,7 +942,7 @@ declare const nw: any;
       query: $("offlineHuntTroopSearch").value,
       selectedId: selectedNumber("offlineHuntTroopId"),
       leading: (entry) => badgeHtml(entry.id, "troop"),
-      actions: (entry) => `<button data-catalog-action="offline-troop-select" data-id="${entry.id}">选择</button><button data-catalog-action="offline-troop-run" data-id="${entry.id}">执行</button>`,
+      actions: (entry) => `<button data-catalog-action="offline-troop-select" data-id="${entry.id}">选择</button><button data-catalog-action="offline-troop-run" data-id="${entry.id}">执行</button><button data-catalog-action="battle-start" data-id="${entry.id}">战斗</button>`,
       extra: (entry) => entry.tags && entry.tags.length ? entry.tags.join("/") : "",
       description: (entry) => entry.description,
       countTarget: dom.offlineHuntTroopListCount
@@ -1107,6 +1107,9 @@ declare const nw: any;
     const huntTroopName = catalogName("troop", numberValue("offlineHuntTroopId", NaN));
     $("offlineHuntTroopHint").textContent = huntTroopName ? `固定敌群 ${$("offlineHuntTroopId").value} / ${huntTroopName}` : "";
 
+    const battleTroopName = catalogName("troop", numberValue("battleTroopId", NaN));
+    $("battleTroopHint").textContent = battleTroopName ? `${$("battleTroopId").value} / ${battleTroopName}` : "";
+
     const commonEventName = catalogName("commonEvent", numberValue("commonEventId", NaN));
     $("commonEventHint").textContent = commonEventName ? `${$("commonEventId").value} / ${commonEventName}` : "";
   }
@@ -1161,7 +1164,7 @@ declare const nw: any;
     ["skillActorId"].forEach((id) => {
       $(id).addEventListener("input", updateLookupHints);
     });
-    ["variableId", "switchId", "mapId", "offlineHuntMapId", "offlineHuntTroopId", "commonEventId"].forEach((id) => {
+    ["variableId", "switchId", "mapId", "offlineHuntMapId", "offlineHuntTroopId", "battleTroopId", "commonEventId"].forEach((id) => {
       $(id).addEventListener("input", () => {
         updateLookupHints();
         if (id === "variableId") renderVariableList();
@@ -1605,6 +1608,11 @@ declare const nw: any;
     renderOfflineHuntTroopList();
   }
 
+  function selectBattleTroop(id) {
+    $("battleTroopId").value = String(id);
+    updateLookupHints();
+  }
+
   function selectCommonEvent(id) {
     $("commonEventId").value = String(id);
     updateLookupHints();
@@ -1724,6 +1732,14 @@ declare const nw: any;
     sendCommand({ type: "commonEvent.run", id: Number(id) });
   }
 
+  function startBattle(id?: number) {
+    if (id !== undefined) selectBattleTroop(id);
+    const troopId = optionalNumber("battleTroopId");
+    const command: any = { type: "battle.start", canEscape: true, canLose: true };
+    if (Number.isFinite(Number(troopId))) command.troopId = troopId;
+    sendCommand(command);
+  }
+
   function handleCatalogClick(event) {
     const actionButton = event.target.closest("[data-catalog-action]");
     const row = event.target.closest(".catalog-row");
@@ -1761,6 +1777,7 @@ declare const nw: any;
       selectOfflineHuntTroop(id);
       runOfflineHunt();
     }
+    else if (action === "battle-start") startBattle(id);
     else if (action === "common-event-run") runCommonEvent(id);
   }
 
@@ -1780,6 +1797,9 @@ declare const nw: any;
       dom.fishingState.textContent = "";
       dom.fishingVariables.textContent = "";
       dom.battleState.textContent = "";
+      $("battleTroopHint").textContent = "";
+      $("mapThroughBtn").classList.remove("active");
+      $("mapThroughBtn").textContent = "穿墙";
       dom.offlineHuntMetric.textContent = "0";
       dom.offlineHuntState.textContent = "";
       dom.offlineHuntResult.innerHTML = "";
@@ -1809,8 +1829,10 @@ declare const nw: any;
     dom.saveState.textContent = state.saveDirExists ? "已识别" : "缺失";
     const currentMap = state.currentMap || {};
     dom.mapState.textContent = currentMap.mapId
-      ? `${currentMap.mapId} (${currentMap.x ?? "-"}, ${currentMap.y ?? "-"})`
+      ? `${currentMap.mapId} (${currentMap.x ?? "-"}, ${currentMap.y ?? "-"})${currentMap.through ? " / 穿墙" : ""}`
       : "-";
+    $("mapThroughBtn").classList.toggle("active", !!currentMap.through);
+    $("mapThroughBtn").textContent = currentMap.through ? "穿墙ON" : "穿墙OFF";
 
     const files = Array.isArray(state.saveFiles) ? state.saveFiles : [];
     dom.saveFiles.innerHTML = files.length
@@ -2312,6 +2334,7 @@ declare const nw: any;
     $("invincibleBtn").addEventListener("click", () => sendOptions({ invincible: !$("invincibleBtn").classList.contains("active") }));
     $("battleKillBtn").addEventListener("click", () => sendCommand({ type: "battle.killEnemies" }));
     $("battleEscapeBtn").addEventListener("click", () => sendCommand({ type: "battle.escape" }));
+    $("battleStartBtn").addEventListener("click", () => startBattle());
     $("offlineHuntPreviewBtn").addEventListener("click", previewOfflineHunt);
     $("offlineHuntRunBtn").addEventListener("click", runOfflineHunt);
     $("offlineHuntPreviewTroopBtn").addEventListener("click", previewOfflineHunt);
@@ -2329,6 +2352,10 @@ declare const nw: any;
     });
     $("partyRecoverBtn").addEventListener("click", () => sendCommand({ type: "party.recover" }));
     $("mapTransferBtn").addEventListener("click", () => transferMap(numberValue("mapId", 0)));
+    $("mapThroughBtn").addEventListener("click", () => sendCommand({
+      type: "map.through.set",
+      value: !$("mapThroughBtn").classList.contains("active")
+    }));
     $("recordPositionBtn").addEventListener("click", recordCurrentPosition);
     $("returnPositionBtn").addEventListener("click", returnRecordedPosition);
     $("commonEventRunBtn").addEventListener("click", () => runCommonEvent(numberValue("commonEventId", 0)));

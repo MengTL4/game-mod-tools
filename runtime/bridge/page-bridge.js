@@ -2,7 +2,7 @@
   if (window.__codexLocalTrainerBridge) return;
 
   const bridge = {
-    version: "0.2.28",
+    version: "0.2.29",
     startedAt: new Date().toISOString(),
     startedAtMs: Date.now(),
     processed: Object.create(null),
@@ -193,6 +193,16 @@
     return members.flatMap((actor, index) => {
       const actorId = actorIdOf(actor) || index + 1;
       return runtimePrototypeChainTargets(`${label}.actor${actorId}`, actor, 5);
+    });
+  }
+
+  function troopEnemyPrototypeTargets(label) {
+    return troopEnemies(false).flatMap((enemy, index) => {
+      let enemyId = index + 1;
+      try {
+        enemyId = typeof enemy.enemyId === "function" ? enemy.enemyId() : enemy._enemyId || enemyId;
+      } catch (_) {}
+      return runtimePrototypeChainTargets(`${label}.enemy${enemyId}`, enemy, 5);
     });
   }
 
@@ -648,6 +658,7 @@
     let x = null;
     let y = null;
     let direction = null;
+    let through = null;
     try {
       if (map && typeof map.mapId === "function") mapId = map.mapId();
       else if (map && map._mapId != null) mapId = map._mapId;
@@ -657,13 +668,15 @@
         x = readGameValue(player, "x", "_x");
         y = readGameValue(player, "y", "_y");
         direction = readGameValue(player, "direction", "_direction");
+        through = playerThroughState(player);
       }
     } catch (_) {}
     return {
       mapId,
       x,
       y,
-      direction
+      direction,
+      through
     };
   }
 
@@ -760,6 +773,121 @@
       bridge.lastError = String(error && error.stack || error);
       throw error;
     }
+  }
+
+  function playerThroughState(player) {
+    try {
+      if (player && typeof player.isThrough === "function") return !!player.isThrough();
+      if (player && player._through != null) return !!player._through;
+    } catch (_) {}
+    return false;
+  }
+
+  function setPlayerThrough(command, toggle) {
+    const player = resolvePlayer();
+    if (!player) throw new Error("game player is unavailable");
+    const previous = playerThroughState(player);
+    const next = toggle ? !previous : (
+      Object.prototype.hasOwnProperty.call(command || {}, "value") ? toBool(command.value) : true
+    );
+    if (typeof player.setThrough === "function") player.setThrough(next);
+    else player._through = next;
+    refreshMapAndWindows();
+    bumpBattleStat("mapThrough", { through: next });
+    return { previous, through: next, currentMap: currentMapInfo() };
+  }
+
+  function commandBattleTroopId(command) {
+    const direct = Math.floor(looseNumber(command && (command.troopId != null ? command.troopId : command.id)));
+    if (Number.isFinite(direct) && direct > 0) return { troopId: direct, source: "command" };
+    const variableId = command && command.variableId !== undefined && command.variableId !== ""
+      ? Math.floor(requireNumber(command.variableId, "variableId"))
+      : 399;
+    const variables = resolveVariables();
+    let value = null;
+    try {
+      value = variables && typeof variables.value === "function" ? variables.value(variableId) : null;
+    } catch (_) {}
+    const troopId = Math.floor(looseNumber(value));
+    if (Number.isFinite(troopId) && troopId > 0) {
+      return { troopId, source: "variable", variableId, variableValue: value };
+    }
+    throw new Error(`troopId is unavailable; provide troopId or set variable ${variableId}`);
+  }
+
+  function runBattleInterpreterCommand(troopId, canEscape, canLose) {
+    const map = resolveMap();
+    const interpreter = map && map._interpreter;
+    if (!interpreter || typeof interpreter.command301 !== "function") return null;
+    const previousParams = interpreter._params;
+    const previousIndent = interpreter._indent;
+    try {
+      if (!interpreter._branch || typeof interpreter._branch !== "object") interpreter._branch = {};
+      interpreter._params = [0, troopId, canEscape, canLose];
+      interpreter._indent = 0;
+      return { method: "interpreter.command301", result: interpreter.command301() };
+    } finally {
+      interpreter._params = previousParams;
+      interpreter._indent = previousIndent;
+    }
+  }
+
+  function runDirectBattleStart(troopId, canEscape, canLose) {
+    const manager = battleManagerObject();
+    if (!manager || typeof manager.setup !== "function") throw new Error("BattleManager.setup is unavailable");
+    const sceneManager = resolveSceneManager();
+    const sceneBattle = window.Scene_Battle;
+    if (!sceneManager || typeof sceneManager.push !== "function" || typeof sceneBattle !== "function") {
+      throw new Error("Scene_Battle is unavailable");
+    }
+    manager.setup(troopId, canEscape, canLose);
+    if (typeof manager.setEventCallback === "function") manager.setEventCallback(function () {});
+    try {
+      const player = resolvePlayer();
+      if (player && typeof player.makeEncounterCount === "function") player.makeEncounterCount();
+    } catch (_) {}
+    sceneManager.push(sceneBattle);
+    return { method: "BattleManager.setup" };
+  }
+
+  function startSpecifiedBattle(command) {
+    if (isInBattle()) return { started: false, reason: "already in battle", inBattle: true };
+    const { troopId, source, variableId, variableValue } = commandBattleTroopId(command || {});
+    const troops = resolveData("troop");
+    const troop = troops && troops[troopId];
+    if (!troop) throw new Error(`troop ${troopId} not found`);
+    const canEscape = command && Object.prototype.hasOwnProperty.call(command, "canEscape") ? toBool(command.canEscape) : true;
+    const canLose = command && Object.prototype.hasOwnProperty.call(command, "canLose") ? toBool(command.canLose) : true;
+    let startResult = null;
+    let interpreterError = null;
+    try {
+      startResult = runBattleInterpreterCommand(troopId, canEscape, canLose);
+    } catch (error) {
+      interpreterError = error;
+    }
+    if (!startResult) {
+      try {
+        startResult = runDirectBattleStart(troopId, canEscape, canLose);
+      } catch (error) {
+        if (interpreterError) {
+          throw new Error(`battle start failed: ${String(interpreterError && interpreterError.message || interpreterError)}; ${String(error && error.message || error)}`);
+        }
+        throw error;
+      }
+    }
+    refreshMapAndWindows();
+    bumpBattleStat("battleStart", { troopId, source });
+    return {
+      started: true,
+      troopId,
+      name: troop.name || "",
+      method: startResult && startResult.method || "",
+      source,
+      variableId,
+      variableValue,
+      canEscape,
+      canLose
+    };
   }
 
   function readGameValue(object, name, fallbackName) {
@@ -1019,7 +1147,26 @@
       }
     });
 
-    const enemyProtos = resolvePrototypeTargets("Game_Enemy", ["Game_Enemy", "GameEnemy"]);
+    uniqueTargets(resolvePrototypeTargets("Game_Troop", ["Game_Troop", "GameTroop"]).concat([
+      runtimePrototypeTarget("TK.$.gameTroop().prototype", resolveTroop())
+    ])).forEach((target) => {
+      if (patchMethod(target.object, "setup", `${target.label}.setup`, function (original, args) {
+        const result = original.apply(this, args);
+        try {
+          patchTrainerHooks();
+        } catch (error) {
+          bridge.lastError = String(error && error.stack || error);
+        }
+        return result;
+      })) {
+        count += 1;
+        hooked.push(`${target.label}.setup`);
+      }
+    });
+
+    const enemyProtos = uniqueTargets(resolvePrototypeTargets("Game_Enemy", ["Game_Enemy", "GameEnemy"]).concat(
+      troopEnemyPrototypeTargets("runtime.troop")
+    ));
     enemyProtos.forEach((target) => {
       if (patchMethod(target.object, "dropItemRate", `${target.label}.dropItemRate`, function (original, args) {
         const base = Number(original.apply(this, args) || 0);
@@ -1943,39 +2090,6 @@
     return drops;
   }
 
-  function markOfflineEnemyDefeated(enemy) {
-    if (!enemy) return false;
-    try {
-      if (typeof enemy.isHidden === "function" && enemy.isHidden()) return false;
-    } catch (_) {}
-    try {
-      if (typeof enemy.setHp === "function") enemy.setHp(0);
-      else enemy._hp = 0;
-      if (typeof enemy.die === "function") enemy.die();
-      if (typeof enemy.refresh === "function") enemy.refresh();
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function createOfflineTroop(troopId) {
-    const sourceTroop = resolveTroop();
-    const Constructor = sourceTroop && sourceTroop.constructor || window.Game_Troop;
-    if (typeof Constructor !== "function") return null;
-    try {
-      const troop = new Constructor();
-      if (typeof troop.setup !== "function") return null;
-      troop.setup(troopId);
-      const members = typeof troop.members === "function" ? troop.members() : troop._enemies || [];
-      members.forEach(markOfflineEnemyDefeated);
-      return troop;
-    } catch (error) {
-      bridge.lastError = String(error && error.stack || error);
-      return null;
-    }
-  }
-
   function troopDataPreview(troopId) {
     const troops = dataTable("troop");
     const enemies = dataTable("enemy");
@@ -2010,39 +2124,6 @@
     };
   }
 
-  function runtimeTroopReward(troopId, options) {
-    options = options || {};
-    const includeDrops = options.includeDrops !== false;
-    const troop = createOfflineTroop(troopId);
-    if (!troop) return null;
-    try {
-      const members = typeof troop.members === "function" ? troop.members() : troop._enemies || [];
-      const enemyIds = members
-        .filter(enemy => {
-          try {
-            return !(typeof enemy.isHidden === "function" && enemy.isHidden());
-          } catch (_) {
-            return true;
-          }
-        })
-        .map(enemy => {
-          try {
-            return typeof enemy.enemyId === "function" ? enemy.enemyId() : enemy._enemyId;
-          } catch (_) {
-            return null;
-          }
-        })
-        .filter(Boolean);
-      const exp = typeof troop.expTotal === "function" ? Number(troop.expTotal() || 0) : 0;
-      const gold = typeof troop.goldTotal === "function" ? Number(troop.goldTotal() || 0) : 0;
-      const items = includeDrops && typeof troop.makeDropItems === "function" ? troop.makeDropItems().filter(Boolean) : [];
-      return { exp, gold, items, enemyIds, source: "runtime" };
-    } catch (error) {
-      bridge.lastError = String(error && error.stack || error);
-      return null;
-    }
-  }
-
   function dataTroopReward(troopId) {
     const preview = troopDataPreview(troopId);
     if (!preview) return null;
@@ -2070,33 +2151,15 @@
   function offlineTroopReward(troopId, config) {
     config = config || offlineLootConfig({});
     const dataReward = dataTroopReward(troopId);
-    const runtimeReward = runtimeTroopReward(troopId, { includeDrops: !dataReward });
-    if (runtimeReward) {
-      const runtimeEnemyIds = Array.isArray(runtimeReward.enemyIds) ? runtimeReward.enemyIds : [];
-      const dataEnemyIds = dataReward && Array.isArray(dataReward.enemyIds) ? dataReward.enemyIds : [];
-      const runtimeItems = Array.isArray(runtimeReward.items) ? runtimeReward.items : [];
-      const dataItems = dataReward && Array.isArray(dataReward.items) ? dataReward.items : [];
-      const useNativeDrops = config.dropMode === "runtime";
-      const chosenItems = dataReward ? dataItems : runtimeItems;
-      return {
-        exp: runtimeReward.exp,
-        gold: runtimeReward.gold,
-        items: chosenItems,
-        enemyIds: uniqueNumericIds(runtimeEnemyIds.concat(dataEnemyIds)),
-        source: useNativeDrops
-          ? (dataReward ? "runtime+dataDrops+independent" : "runtimeDrops")
-          : (dataReward ? "runtime+dataDrops" : "runtime"),
-        dropMode: useNativeDrops ? "runtime" : "data",
-        runtimeDropCount: useNativeDrops ? chosenItems.length : runtimeItems.length,
-        dataDropCount: dataItems.length
-      };
-    }
-    return dataReward ? {
+    if (!dataReward) return null;
+    const itemCount = Array.isArray(dataReward.items) ? dataReward.items.length : 0;
+    return {
       ...dataReward,
-      dropMode: "data",
-      runtimeDropCount: 0,
-      dataDropCount: Array.isArray(dataReward.items) ? dataReward.items.length : 0
-    } : null;
+      source: config.dropMode === "runtime" ? "dataDrops+independent" : "data",
+      dropMode: config.dropMode,
+      runtimeDropCount: config.dropMode === "runtime" ? itemCount : 0,
+      dataDropCount: itemCount
+    };
   }
 
   function offlineHuntProbe(command) {
@@ -2112,12 +2175,9 @@
       : offlineEncounterList(mapId, regionId);
     if (!encounters.length) throw new Error(`map ${mapId} has no encounter list`);
 
-    const runtimeGroups = Object.create(null);
     const dataGroups = Object.create(null);
     const troops = Object.create(null);
-    let runtimeCalls = 0;
     let dataCalls = 0;
-    let runtimeItems = 0;
     let dataItems = 0;
 
     for (let index = 0; index < times; index += 1) {
@@ -2126,14 +2186,6 @@
       const preview = troopDataPreview(troopId);
       if (!troops[troopId]) troops[troopId] = { id: troopId, name: preview && preview.name || "", count: 0 };
       troops[troopId].count += 1;
-      const runtimeReward = runtimeTroopReward(troopId);
-      if (runtimeReward) {
-        runtimeCalls += 1;
-        (runtimeReward.items || []).forEach((item) => {
-          runtimeItems += 1;
-          addDropGroup(runtimeGroups, item, 1);
-        });
-      }
       const dataReward = dataTroopReward(troopId);
       if (dataReward) {
         dataCalls += 1;
@@ -2151,15 +2203,16 @@
       fixedTroopId,
       regionId,
       times,
-      runtimeCalls,
+      runtimeCalls: 0,
       dataCalls,
-      runtimeItems,
+      runtimeItems: 0,
       dataItems,
       nativeFunctions: ["GetDrop", "GetDropAll", "GetDropArr", "getIndependentItemById", "SDC_addTempItem", "autoSellEquips"]
         .filter(name => typeof tk[name] === "function")
         .map(name => ({ name, length: tk[name].length })),
+      note: "probe is data-only to avoid temporary Game_Troop side effects",
       troopSummary: Object.values(troops).sort((a, b) => b.count - a.count),
-      runtimeDropSummary: dropGroupRows(runtimeGroups, 80),
+      runtimeDropSummary: [],
       dataDropSummary: dropGroupRows(dataGroups, 80)
     };
   }
@@ -2266,20 +2319,16 @@
     ids.forEach((id) => {
       config.enemyBook[id] = 1;
     });
-    const system = resolveSystem();
-    if (system) {
-      system._revealedEnemyWeaknesses = system._revealedEnemyWeaknesses || {};
-      ids.forEach((id) => {
-        system._revealedEnemyWeaknesses[id] = true;
-      });
-    }
-    return { count: ids.length, saved: saveConfig() };
+    const weaknessRepair = sanitizeEnemyWeaknessStore();
+    return { count: ids.length, saved: saveConfig(), weaknessRepair };
   }
 
   function saveGameToSlot(savefileId) {
     const dataManager = resolveDataManager();
     if (!dataManager || typeof dataManager.saveGame !== "function") throw new Error("saveGame is unavailable");
     const id = Math.floor(requireNumber(savefileId || 1, "id"));
+    if (id <= 0) throw new Error("save slot id must be positive");
+    sanitizeEnemyWeaknessStore();
     const result = dataManager.saveGame(id);
     return { id, result: String(result) };
   }
@@ -2380,10 +2429,15 @@
       if (typeof party.gainGold === "function") party.gainGold(gold);
       else party._gold = Math.max(0, Number(party._gold || 0) + gold);
       keptItems.forEach((item) => {
-        const gained = gainOfflineItem(party, item);
-        if (gained.ok && gained.items.length) {
-          gained.items.forEach(gainedItem => addDropGroup(dropGroups, gainedItem || item, 1));
+        if (lootConfig.nativeDrops) {
+          const gained = gainOfflineItem(party, item);
+          if (gained.ok && gained.items.length) {
+            gained.items.forEach(gainedItem => addDropGroup(dropGroups, gainedItem || item, 1));
+          } else {
+            addDropGroup(dropGroups, item, 1);
+          }
         } else {
+          if (typeof party.gainItem === "function") party.gainItem(item, 1);
           addDropGroup(dropGroups, item, 1);
         }
       });
@@ -2462,6 +2516,7 @@
     const variables = resolveVariables();
     const switches = resolveSwitches();
     const dataManager = resolveDataManager();
+    const enemyWeaknessRepair = sanitizeEnemyWeaknessStore();
     patchTrainerHooks();
     preserveNoCostResources("state");
     const mapInfo = currentMapInfo();
@@ -2499,6 +2554,7 @@
       fishing: fishingSummary(),
       hangup: hangupSummary(),
       offlineHunt: offlineHuntSummary(),
+      enemyWeaknessRepair,
       rateStats: { ...bridge.rateStats },
       battleStats: { ...bridge.battleStats },
       hookTargets: bridge.hookTargets.slice(),
@@ -2573,6 +2629,46 @@
     return false;
   }
 
+  function sanitizeEnemyWeaknessStore() {
+    const system = resolveSystem();
+    if (!system) return { available: false, repaired: 0, initialized: false };
+    let store = system._revealedEnemyWeaknesses;
+    let initialized = false;
+    if (!store || typeof store !== "object") {
+      if (typeof system.initializeRevealedEnemyWeaknesses === "function") {
+        try {
+          system.initializeRevealedEnemyWeaknesses();
+          initialized = true;
+        } catch (error) {
+          bridge.lastError = String(error && error.stack || error);
+        }
+      }
+      store = system._revealedEnemyWeaknesses;
+      if (!store || typeof store !== "object") {
+        store = {};
+        system._revealedEnemyWeaknesses = store;
+        initialized = true;
+      }
+    }
+
+    let repaired = 0;
+    Object.keys(store).forEach((key) => {
+      if (key === "@c" || key === "@a") return;
+      const id = Math.floor(looseNumber(key));
+      if (!Number.isFinite(id) || id <= 0) return;
+      const value = store[key];
+      if (Array.isArray(value)) return;
+      if (value && typeof value === "object" && Array.isArray(value["@a"])) {
+        store[key] = uniqueNumericIds(value["@a"]);
+      } else {
+        store[key] = [];
+      }
+      repaired += 1;
+    });
+    if (repaired > 0) bridge.enemyWeaknessRepair = { ts: Date.now(), repaired };
+    return { available: true, repaired, initialized };
+  }
+
   function enemyIdsFromData() {
     const enemies = resolveData("enemy") || [];
     if (!Array.isArray(enemies)) return [];
@@ -2590,16 +2686,10 @@
       config.enemyBook[id] = 1;
     });
 
-    const system = resolveSystem();
-    if (system) {
-      system._revealedEnemyWeaknesses = system._revealedEnemyWeaknesses || {};
-      targetIds.forEach((id) => {
-        system._revealedEnemyWeaknesses[id] = true;
-      });
-    }
+    const weaknessRepair = sanitizeEnemyWeaknessStore();
     const saved = saveConfig();
     refreshMapAndWindows();
-    return { count: targetIds.length, saved };
+    return { count: targetIds.length, saved, weaknessRepair };
   }
 
   function hashString(value) {
@@ -3119,6 +3209,12 @@
     if (type === "map.current") {
       return currentMapInfo();
     }
+    if (type === "map.through.set") {
+      return setPlayerThrough(command, false);
+    }
+    if (type === "map.through.toggle") {
+      return setPlayerThrough(command, true);
+    }
     if (type === "map.transfer") {
       const player = resolvePlayer();
       if (!player) throw new Error("game player is unavailable");
@@ -3197,6 +3293,9 @@
     }
     if (type === "battle.escape") {
       return escapeBattle();
+    }
+    if (type === "battle.start") {
+      return startSpecifiedBattle(command);
     }
     if (type === "hangup.info") {
       return hangupSummary();
