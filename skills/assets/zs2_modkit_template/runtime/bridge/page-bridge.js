@@ -193,6 +193,16 @@
     });
   }
 
+  function troopEnemyPrototypeTargets(label) {
+    return troopEnemies(false).flatMap((enemy, index) => {
+      let enemyId = index + 1;
+      try {
+        enemyId = typeof enemy.enemyId === "function" ? enemy.enemyId() : enemy._enemyId || enemyId;
+      } catch (_) {}
+      return runtimePrototypeChainTargets(`${label}.enemy${enemyId}`, enemy, 5);
+    });
+  }
+
   function resolveParty() {
     return callAlias("gameParty") || window.$gameParty || null;
   }
@@ -1294,7 +1304,9 @@
     let count = 0;
     const hooked = [];
 
-    const enemyProtos = resolvePrototypeTargets("Game_Enemy", ["Game_Enemy", "GameEnemy"]);
+    const enemyProtos = uniqueTargets(resolvePrototypeTargets("Game_Enemy", ["Game_Enemy", "GameEnemy"]).concat(
+      troopEnemyPrototypeTargets("runtime.troop")
+    ));
     enemyProtos.forEach((target) => {
       if (patchMethod(target.object, "dropItemRate", `${target.label}.dropItemRate`, function (original, args) {
         const base = Number(original.apply(this, args) || 0);
@@ -1947,7 +1959,8 @@
       const table = dropTable(kind);
       const item = table && table[id];
       if (!item || !Number.isFinite(percent)) return;
-      const chance = Math.max(0, Math.min(1, (percent / 100) * Math.max(0, Number(rate || 1))));
+      const rateValue = rate == null ? 1 : Number(rate);
+      const chance = Math.max(0, Math.min(1, (percent / 100) * Math.max(0, rateValue)));
       drops.push({ kind, id, chance, item });
     });
     return drops;
@@ -2104,7 +2117,8 @@
         const kind = normalizeDropKind(drop.kind);
         if (!kind || noteDropKeys.has(`${kind}:${drop.dataId}`)) return;
         const item = dropTable(kind)[drop.dataId];
-        const chance = Math.min(1, Math.max(0, Number(bridge.options.dropRate || 1)) / Math.max(1, Number(drop.denominator || 1)));
+        const rateValue = bridge.options.dropRate == null ? 1 : Number(bridge.options.dropRate);
+        const chance = Math.min(1, Math.max(0, rateValue) / Math.max(1, Number(drop.denominator || 1)));
         if (item && Math.random() < chance) items.push(item);
       });
     });
@@ -2374,7 +2388,7 @@
       gold,
       expRate,
       goldRate,
-      dropRate: Number(bridge.options.dropRate || 1),
+      dropRate: Number(bridge.options.dropRate == null ? 1 : bridge.options.dropRate),
       runtimeCount,
       dataCount,
       troopSummary: Object.values(troopGroups).sort((a, b) => b.count - a.count),

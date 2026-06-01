@@ -129,7 +129,7 @@ npm.cmd install --registry https://registry.npmmirror.com
 npm.cmd run build
 ```
 
-`tools/launch-gui.ps1` 会在发现 `app.ts` 比 `app.js` 新，或 `app.js` 缺失时自动执行同样的构建流程；启动前也会检查 `output/extract/data`。如果 `data.pak` 还没导出、关键 JSON 缺失，或游戏更新后数据过期，会自动运行 `extract-data-pak.mjs` 生成 GUI 列表数据。
+`tools/launch-gui.ps1` 会在发现 `app.ts` 比 `app.js` 新，或 `app.js` 缺失时自动执行同样的构建流程；启动前也会检查 `output/extract/data` 和 `output/extract/useData`。如果 `data.pak`、`useData` 还没导出，关键 JSON 缺失，或游戏更新后数据过期，会自动运行对应导出脚本生成 GUI 列表数据。
 
 GUI 里已经按当前游戏移除参考项目里的钓鱼功能和熟练系统。当前主要分类：
 
@@ -146,6 +146,8 @@ GUI 里已经按当前游戏移除参考项目里的钓鱼功能和熟练系统�
 物品、技能、角色、变量、开关、地图、敌群等长列表默认分页显示。列表首次打开停在首页，搜索会重新回到首页；直接选择 ID 时再跳到包含该项的页。
 
 GUI 已针对 Windows 显示缩放和窄窗口做自适应。窗口可缩到 `760x560`；在 125%/150% 缩放或低高度窗口下会切换到页面滚动模式。顶部栏、大分类和二级分类会按实际高度计算 sticky 偏移，切换大分类时保留大分类导航在可见区域，避免跳到二级分类后还要向上滚回去。
+
+倍率中的 `dropRate` 会同时作用于真实战斗掉落和脱机/敌群挂机掉落模拟。`0` 表示不掉落，`1` 表示原始概率，大于 `1` 会放大概率并封顶到 100%；真实战斗中如果当前游戏不暴露 `Game_Enemy` 全局类，bridge 会从 `$gameTroop.members()` 的敌人实例原型链动态挂掉落 hook。
 
 需要清空这些生成产物时执行：
 
@@ -253,9 +255,10 @@ Pop-Location
 .\tools\extract-all.ps1
 .\tools\encrypt-saves.ps1
 node .\tools\trainer-send.mjs ping
+node .\tools\trainer-send.mjs trainer.hooks.info
 ```
 
-`ping` 正常时会返回 `ok=true`，并确认 bridge 状态中 `hasParty`、`hasVariables`、`hasSwitches`、`hasDataManager`、`hooksPatched` 可用。
+`ping` 正常时会返回 `ok=true`，并确认 bridge 状态中 `hasParty`、`hasVariables`、`hasSwitches`、`hasDataManager`、`hooksPatched` 可用。进入真实战斗或设置过敌群后，`trainer.hooks.info` 的 `hookTargets` 中应能看到 `dropItemRate`、`makeDropItems` 或 BattleManager 奖励 hook。
 
 ## 许可证
 

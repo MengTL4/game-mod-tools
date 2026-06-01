@@ -14,7 +14,9 @@ $GameExe = Join-Path $Gui "Game.exe"
 $AppTs = Join-Path $Gui "app.ts"
 $AppJs = Join-Path $Gui "app.js"
 $ExtractDataDir = Join-Path $ProjectRoot "output\extract\data"
+$ExtractUseDataDir = Join-Path $ProjectRoot "output\extract\useData"
 $DataPak = Join-Path $GameRoot "www\data.pak"
+$UseDataDir = Join-Path $GameRoot "www\useData"
 
 function Test-ExtractedJsonPlain {
   param([string]$Path)
@@ -74,6 +76,34 @@ function Invoke-DataExtractIfNeeded {
   if ($LASTEXITCODE -ne 0) { throw "extract-data-pak.mjs failed with exit code $LASTEXITCODE" }
 }
 
+function Test-GuiUseDataExtractReady {
+  if (-not (Test-Path -LiteralPath $UseDataDir)) { return $false }
+  if (-not (Test-Path -LiteralPath $ExtractUseDataDir)) { return $false }
+
+  $indexPath = Join-Path $ExtractUseDataDir "_index.json"
+  if (-not (Test-Path -LiteralPath $indexPath)) { return $false }
+
+  $jsonFiles = @(Get-ChildItem -LiteralPath $ExtractUseDataDir -Filter "*.json" -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -ne "_index.json" })
+  if ($jsonFiles.Count -eq 0) { return $false }
+
+  $latestSource = Get-ChildItem -LiteralPath $UseDataDir -File -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTimeUtc -Descending |
+    Select-Object -First 1
+  if ($latestSource -and $latestSource.LastWriteTimeUtc -gt (Get-Item -LiteralPath $indexPath).LastWriteTimeUtc) {
+    return $false
+  }
+
+  return $true
+}
+
+function Invoke-UseDataExtractIfNeeded {
+  if (Test-GuiUseDataExtractReady) { return }
+  Write-Host "Extracted useData not found or stale. Extracting www/useData for GUI title lists..."
+  & node (Join-Path $PSScriptRoot "extract-usedata.mjs")
+  if ($LASTEXITCODE -ne 0) { throw "extract-usedata.mjs failed with exit code $LASTEXITCODE" }
+}
+
 function Invoke-GuiBuildIfNeeded {
   if (-not (Test-Path -LiteralPath $AppTs)) { return }
   $needsBuild = -not (Test-Path -LiteralPath $AppJs)
@@ -110,6 +140,7 @@ function Invoke-GuiBuildIfNeeded {
 }
 
 Invoke-DataExtractIfNeeded
+Invoke-UseDataExtractIfNeeded
 Invoke-GuiBuildIfNeeded
 
 if (-not (Test-Path -LiteralPath $GameExe)) {
