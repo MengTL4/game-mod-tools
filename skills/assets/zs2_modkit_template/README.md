@@ -129,7 +129,7 @@ npm.cmd install --registry https://registry.npmmirror.com
 npm.cmd run build
 ```
 
-`tools/launch-gui.ps1` 会在发现 `app.ts` 比 `app.js` 新，或 `app.js` 缺失时自动执行同样的构建流程；启动前也会检查 `output/extract/data` 和 `output/extract/useData`。如果 `data.pak`、`useData` 还没导出，关键 JSON 缺失，或游戏更新后数据过期，会自动运行对应导出脚本生成 GUI 列表数据。
+`tools/launch-gui.ps1` 会在发现 `app.ts` 比 `app.js` 新，或 `app.js` 缺失时自动执行同样的构建流程；启动前也会按需重新生成 `runtime/bridge/page-bridge.js`，避免 GUI 已更新但注入游戏的 bridge 仍是旧版本。启动前还会检查 `output/extract/data` 和 `output/extract/useData`。如果 `data.pak`、`useData` 还没导出，关键 JSON 缺失，或游戏更新后数据过期，会自动运行对应导出脚本生成 GUI 列表数据。
 
 GUI 里已经按当前游戏移除参考项目里的钓鱼功能和熟练系统。当前主要分类：
 
@@ -150,6 +150,21 @@ GUI 已针对 Windows 显示缩放和窄窗口做自适应。窗口可缩到 `76
 倍率中的 `dropRate` 会同时作用于真实战斗掉落和脱机/敌群挂机掉落模拟。`0` 表示不掉落，`1` 表示原始概率，大于 `1` 会放大概率并封顶到 100%；真实战斗中如果当前游戏不暴露 `Game_Enemy` 全局类，bridge 会从 `$gameTroop.members()` 的敌人实例原型链动态挂掉落 hook。脱机/敌群挂机只使用敌群、敌人和掉落数据模拟奖励，不会临时创建真实 `Game_Troop`，避免触发战斗插件副作用。
 
 战斗面板支持“指定战斗”：填写敌群 ID 会直接进入对应战斗；留空时读取变量 `399` 作为敌群 ID。地图面板支持“穿墙”开关，状态会跟随 `$gamePlayer.setThrough()` 实时切换。
+
+### Config 与称号保存
+
+当前 bridge 版本是 `0.2.40`。GUI 状态显示“桥接版本不一致”时，需要完全关闭旧游戏进程并重新从 GUI/脚本启动。正常接入后，`runtime/bridge-state/state.json` 中应能看到：
+
+```json
+"bridgeVersion": "0.2.40",
+"saveTargets": {
+  "config": "...\\www\\save\\config.rpgsave",
+  "legacyConfig": "...\\www\\save\\file-1.rpgsave",
+  "configUsesLegacyPath": false
+}
+```
+
+`ConfigManager` 的特殊槽位 `-1` 必须写入 `config.rpgsave`，`0` 写入 `global.rpgsave`，普通存档槽写入 `fileN.rpgsave`。旧版本曾把 `-1` 错写成 `file-1.rpgsave`，表现为修改器里称号已解锁，但 Steam 正常启动后称号、成就、账号继承不一致。`file-1.rpgsave` 是这个旧错误路径产生的遗留文件；不要直接把它当正常账号配置覆盖 `config.rpgsave`。如果需要迁移其中的称号，应先备份后只合并明确需要的字段。
 
 需要清空这些生成产物时执行：
 

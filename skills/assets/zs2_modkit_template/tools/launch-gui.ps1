@@ -13,6 +13,9 @@ $Gui = Join-Path $ProjectRoot "app\gui"
 $GameExe = Join-Path $Gui "Game.exe"
 $AppTs = Join-Path $Gui "app.ts"
 $AppJs = Join-Path $Gui "app.js"
+$GuiSrc = Join-Path $Gui "src"
+$BridgeSourceDir = Join-Path $ProjectRoot "runtime\bridge\src"
+$BridgeOutput = Join-Path $ProjectRoot "runtime\bridge\page-bridge.js"
 $ExtractDataDir = Join-Path $ProjectRoot "output\extract\data"
 $ExtractUseDataDir = Join-Path $ProjectRoot "output\extract\useData"
 $DataPak = Join-Path $GameRoot "www\data.pak"
@@ -104,11 +107,24 @@ function Invoke-UseDataExtractIfNeeded {
   if ($LASTEXITCODE -ne 0) { throw "extract-usedata.mjs failed with exit code $LASTEXITCODE" }
 }
 
+function Get-GuiSourceFiles {
+  $files = @()
+  if (Test-Path -LiteralPath $AppTs) {
+    $files += Get-Item -LiteralPath $AppTs
+  }
+  if (Test-Path -LiteralPath $GuiSrc) {
+    $files += Get-ChildItem -LiteralPath $GuiSrc -Recurse -File -Filter "*.ts"
+  }
+  return $files
+}
+
 function Invoke-GuiBuildIfNeeded {
-  if (-not (Test-Path -LiteralPath $AppTs)) { return }
+  $sourceFiles = @(Get-GuiSourceFiles)
+  if (-not $sourceFiles.Count) { return }
   $needsBuild = -not (Test-Path -LiteralPath $AppJs)
   if (-not $needsBuild) {
-    $needsBuild = (Get-Item -LiteralPath $AppTs).LastWriteTimeUtc -gt (Get-Item -LiteralPath $AppJs).LastWriteTimeUtc
+    $appJsTime = (Get-Item -LiteralPath $AppJs).LastWriteTimeUtc
+    $needsBuild = [bool]($sourceFiles | Where-Object { $_.LastWriteTimeUtc -gt $appJsTime } | Select-Object -First 1)
   }
   if (-not $needsBuild) { return }
 
@@ -139,8 +155,23 @@ function Invoke-GuiBuildIfNeeded {
   }
 }
 
+function Invoke-BridgeBuildIfNeeded {
+  $sourceFiles = @(Get-ChildItem -LiteralPath $BridgeSourceDir -Recurse -File -Filter "*.js" -ErrorAction SilentlyContinue)
+  if (-not $sourceFiles.Count) { return }
+  $needsBuild = -not (Test-Path -LiteralPath $BridgeOutput)
+  if (-not $needsBuild) {
+    $bridgeOutputTime = (Get-Item -LiteralPath $BridgeOutput).LastWriteTimeUtc
+    $needsBuild = [bool]($sourceFiles | Where-Object { $_.LastWriteTimeUtc -gt $bridgeOutputTime } | Select-Object -First 1)
+  }
+  if (-not $needsBuild) { return }
+
+  & node (Join-Path $PSScriptRoot "build-bridge.mjs")
+  if ($LASTEXITCODE -ne 0) { throw "build-bridge.mjs failed with exit code $LASTEXITCODE" }
+}
+
 Invoke-DataExtractIfNeeded
 Invoke-UseDataExtractIfNeeded
+Invoke-BridgeBuildIfNeeded
 Invoke-GuiBuildIfNeeded
 
 if (-not (Test-Path -LiteralPath $GameExe)) {

@@ -5,79 +5,26 @@ declare const nw: any;
   const path = require("path");
   const childProcess = require("child_process");
 
-  const projectRoot = path.resolve(process.cwd(), "..", "..");
-  const rootDir = resolveGameRoot(projectRoot);
-  const trainerGameExe = path.join(rootDir, "Game.exe");
-  const bridgeExtensionDir = path.join(projectRoot, "runtime", "bridge");
-  const bridgeDir = path.join(projectRoot, "runtime", "bridge-state");
-  const commandPath = path.join(bridgeDir, "commands.jsonl");
-  const eventPath = path.join(bridgeDir, "events.jsonl");
-  const statePath = path.join(bridgeDir, "state.json");
-  const saveDir = path.join(rootDir, "www", "save");
-  const dataDir = path.join(projectRoot, "output", "extract", "data");
-  const useDataDir = path.join(projectRoot, "output", "extract", "useData");
-  const costumeDataPath = path.join(rootDir, "www", "data", "huanzhuang.json");
-  const iconDir = path.join(process.cwd(), "icons");
-  const iconSetPath = path.join(rootDir, "www", "img", "system", "IconSet.png");
-  const EXPECTED_BRIDGE_VERSION = "0.2.37";
+  const paths = Zs2Gui.Paths.create(process.cwd());
+  const {
+    projectRoot,
+    rootDir,
+    trainerGameExe,
+    bridgeExtensionDir,
+    bridgeDir,
+    saveDir,
+    iconDir,
+    iconSetPath
+  } = paths;
+  const bridgeClient = Zs2Gui.BridgeClient.create(paths);
+  const EXPECTED_BRIDGE_VERSION = Zs2Gui.Config.EXPECTED_BRIDGE_VERSION;
 
-  const $ = (id: string): any => document.getElementById(id);
-  const dom = {
-    statusPill: $("statusPill"),
-    launchBtn: $("launchBtn"),
-    refreshBtn: $("refreshBtn"),
-    bridgeState: $("bridgeState"),
-    partyState: $("partyState"),
-    goldState: $("goldState"),
-    goldMetric: $("goldMetric"),
-    saveState: $("saveState"),
-    mapState: $("mapState"),
-    saveFiles: $("saveFiles"),
-    partyMembers: $("partyMembers"),
-    variableList: $("variableList"),
-    variableListCount: $("variableListCount"),
-    switchList: $("switchList"),
-    switchListCount: $("switchListCount"),
-    itemList: $("itemList"),
-    itemListCount: $("itemListCount"),
-    skillList: $("skillList"),
-    skillListCount: $("skillListCount"),
-    babySkillList: $("babySkillList"),
-    babySkillListCount: $("babySkillListCount"),
-    actorList: $("actorList"),
-    actorListCount: $("actorListCount"),
-    mapList: $("mapList"),
-    mapListCount: $("mapListCount"),
-    offlineHuntMapList: $("offlineHuntMapList"),
-    offlineHuntMapListCount: $("offlineHuntMapListCount"),
-    offlineHuntTroopList: $("offlineHuntTroopList"),
-    offlineHuntTroopListCount: $("offlineHuntTroopListCount"),
-    offlineHuntMetric: $("offlineHuntMetric"),
-    offlineHuntState: $("offlineHuntState"),
-    offlineHuntResult: $("offlineHuntResult"),
-    commonEventList: $("commonEventList"),
-    commonEventListCount: $("commonEventListCount"),
-    eventList: $("eventList"),
-    babyMetric: $("babyMetric"),
-    babyHint: $("babyHint"),
-    babyState: $("babyState"),
-    babyList: $("babyList"),
-    talentPointMetric: $("talentPointMetric"),
-    talentState: $("talentState"),
-    titleList: $("titleList"),
-    titleListCount: $("titleListCount"),
-    costumeList: $("costumeList"),
-    costumeListCount: $("costumeListCount"),
-    battleState: $("battleState"),
-    toolSectionNav: $("toolSectionNav"),
-    toast: $("toast")
-  };
+  const $ = (id: string): any => Zs2Gui.Dom.byId(document, id);
+  const dom = Zs2Gui.Dom.create(document);
 
   let lastEventSize = 0;
   let switchValue = true;
   let gameProcess: any = null;
-  let iconSetImage: any = null;
-  let iconRenderVersion = 0;
   let latestState: any = null;
   let recordedPosition: any = null;
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
@@ -94,87 +41,32 @@ declare const nw: any;
     misc: "variable",
     debug: "command"
   };
-  const iconCache = new Map<number, string>();
-  const catalogViews = new Map<string, any>();
-  const DEFAULT_CATALOG_ROW_HEIGHT = 88;
-  const CATALOG_PAGE_SIZE = 20;
-  const DATALIST_LIMIT = 80;
-  const catalogPages = new Map<string, any>();
-  const datalistSources = new Map<string, any[]>();
-  const CATALOG_LIST_IDS = [
-    "itemList",
-    "skillList",
-    "babySkillList",
-    "actorList",
-    "titleList",
-    "costumeList",
-    "variableList",
-    "switchList",
-    "mapList",
-    "offlineHuntMapList",
-    "offlineHuntTroopList",
-    "commonEventList"
-  ];
   const itemKindLabels: Record<string, string> = {
     item: "物品",
     weapon: "武器",
     armor: "防具"
   };
   let selectedItemKind = "item";
-  const systemData = readJson(path.join(dataDir, "System.json")) || {};
-  const catalogs: Record<string, any[]> = {
-    variable: loadNamedArrayCatalog(systemData.variables || []),
-    switch: loadNamedArrayCatalog(systemData.switches || []),
-    item: loadCatalog("Items.json"),
-    weapon: loadCatalog("Weapons.json"),
-    armor: loadCatalog("Armors.json"),
-    actor: loadCatalog("Actors.json"),
-    skill: loadCatalog("Skills.json"),
-    title: loadTitleCatalog(),
-    costume: loadCostumeCatalog(),
-    map: loadMapCatalog(),
-    huntMap: loadHuntMapCatalog(),
-    troop: loadTroopCatalog(),
-    commonEvent: loadCommonEventCatalog()
-  };
-  catalogs.all = buildAllItemCatalog();
+  const catalogs: Record<string, any[]> = Zs2Gui.Catalogs.loadCatalogs({
+    dataDir: paths.dataDir,
+    useDataDir: paths.useDataDir,
+    costumeDataPath: paths.costumeDataPath,
+    itemKindLabels,
+    readJson,
+    looseNumber
+  });
+  const iconRenderer = Zs2Gui.IconRenderer.create({
+    iconSetPath,
+    iconDir,
+    documentRef: document,
+    imageCtor: Image,
+    escapeHtml,
+    showToast,
+    onReady: () => renderCatalogs()
+  });
 
   process.env.ZS2_MODKIT_ROOT = projectRoot;
   process.env.ZS2_GAME_ROOT = rootDir;
-
-  function resolveGameRoot(projectRoot) {
-    const candidates = [];
-    if (process.env.ZS2_GAME_ROOT) candidates.push(process.env.ZS2_GAME_ROOT);
-    try {
-      const configPath = path.join(projectRoot, "config.local.json");
-      if (fs.existsSync(configPath)) {
-        const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-        if (config && config.gameRoot) candidates.push(String(config.gameRoot));
-      }
-    } catch (error) {
-      throw new Error("Invalid config.local.json: " + (error && error.message || error));
-    }
-    candidates.push(path.resolve(projectRoot, ".."));
-
-    for (const candidate of candidates) {
-      const fullPath = path.resolve(projectRoot, expandEnv(candidate));
-      if (fs.existsSync(path.join(fullPath, "www", "index.html"))) {
-        return fs.realpathSync(fullPath);
-      }
-    }
-    throw new Error("Game root not found. Set ZS2_GAME_ROOT or create config.local.json.");
-  }
-
-  function expandEnv(value) {
-    return String(value).replace(/%([^%]+)%|\$\{([^}]+)\}/g, (match, winName, posixName) => {
-      const name = winName || posixName;
-      return process.env[name] || match;
-    });
-  }
-
-  function ensureBridgeDir() {
-    fs.mkdirSync(bridgeDir, { recursive: true });
-  }
 
   function readJson(file) {
     try {
@@ -185,620 +77,12 @@ declare const nw: any;
     }
   }
 
-  function loadCatalog(fileName) {
-    try {
-      const file = path.join(dataDir, fileName);
-      if (!fs.existsSync(file)) return [];
-      const data = JSON.parse(fs.readFileSync(file, "utf8"));
-      if (!Array.isArray(data)) return [];
-      return data
-        .filter((entry) => entry && Number.isFinite(Number(entry.id)) && entry.name)
-        .map((entry) => {
-          const description = cleanText(entry.description || "");
-          const noteText = cleanNote(entry.note || "");
-          return {
-            id: Number(entry.id),
-            name: String(entry.name),
-            iconIndex: Number.isFinite(Number(entry.iconIndex)) ? Number(entry.iconIndex) : 0,
-            description,
-            noteText,
-            searchText: `${entry.id} ${entry.name || ""} ${description} ${noteText}`.toLowerCase(),
-            faceName: entry.faceName ? String(entry.faceName) : "",
-            characterName: entry.characterName ? String(entry.characterName) : ""
-          };
-        });
-    } catch {
-      return [];
-    }
-  }
-
-  function loadTitleCatalog() {
-    const rows = [];
-    const seen = new Set<number>();
-    const push = (entry, key) => {
-      const id = Math.floor(looseNumber(entry && entry.tile));
-      if (!Number.isFinite(id) || id <= 0 || seen.has(id)) return;
-      seen.add(id);
-      const name = cleanText(entry.name || entry.title || `称号 ${id}`);
-      const description = cleanText(entry.descEx || entry.description || entry.desc || "");
-      rows.push({
-        id,
-        sourceId: Math.floor(looseNumber(key)),
-        name,
-        description,
-        noteText: "",
-        value: id,
-        label: `${id} / ${name}`,
-        searchText: makeSearchText([id, key, name, description])
-      });
-    };
-    try {
-      if (!fs.existsSync(useDataDir)) return [];
-      fs.readdirSync(useDataDir)
-        .filter((name) => /\.json$/i.test(name))
-        .forEach((name) => {
-          const data = readJson(path.join(useDataDir, name));
-          if (!data || typeof data !== "object") return;
-          if (Array.isArray(data)) data.forEach((entry, index) => push(entry, index));
-          else Object.keys(data).forEach((key) => push(data[key], key));
-        });
-    } catch {
-      return rows.sort((a, b) => a.id - b.id);
-    }
-    return rows.sort((a, b) => a.id - b.id || a.sourceId - b.sourceId);
-  }
-
-  function loadCostumeCatalog() {
-    const data = readJson(costumeDataPath);
-    const rows = [];
-    const seen = new Set<number>();
-    const push = (entry, key) => {
-      const id = Math.floor(looseNumber(entry && entry.id));
-      if (!Number.isFinite(id) || id <= 0 || seen.has(id)) return;
-      seen.add(id);
-      const name = cleanText(entry.name || `换装 ${id}`);
-      const description = cleanText(entry.desc || entry.description || "");
-      const equipId = Math.floor(looseNumber(entry.equipId));
-      rows.push({
-        id,
-        sourceId: Math.floor(looseNumber(key)),
-        name,
-        description,
-        noteText: "",
-        equipId: Number.isFinite(equipId) ? equipId : undefined,
-        characterName: cleanText(entry.characterName || ""),
-        characterIndex: Number(entry.characterIndex || 0),
-        value: id,
-        label: `${id} / ${name}`,
-        searchText: makeSearchText([id, key, name, description, entry.equipId, entry.characterName])
-      });
-    };
-    if (Array.isArray(data)) data.forEach((entry, index) => push(entry, index));
-    else if (data && typeof data === "object") Object.keys(data).forEach((key) => push(data[key], key));
-    return rows.sort((a, b) => a.id - b.id || a.sourceId - b.sourceId);
-  }
-
-  function makeSearchText(parts) {
-    return parts
-      .filter((part) => part != null && part !== "")
-      .map((part) => String(part))
-      .join(" ")
-      .toLowerCase();
-  }
-
-  function buildAllItemCatalog() {
-    return ["item", "weapon", "armor"].flatMap((kind) => {
-      const kindLabel = itemKindLabels[kind] || kind;
-      return (catalogs[kind] || []).map((entry) => ({
-        ...entry,
-        kind,
-        kindLabel,
-        uid: `${kind}:${entry.id}`,
-        value: `${kind}:${entry.id}`,
-        label: `${kindLabel} / ${entry.name}`,
-        searchText: makeSearchText([
-          entry.searchText,
-          `${kind}:${entry.id}`,
-          entry.id,
-          entry.name,
-          entry.description,
-          entry.noteText,
-          kind,
-          kindLabel
-        ])
-      }));
-    });
-  }
-
-  function loadNamedArrayCatalog(names) {
-    return names
-      .map((name, index) => {
-        const text = cleanText(name || "");
-        return text ? {
-          id: index,
-          name: text,
-          description: "",
-          noteText: "",
-          searchText: makeSearchText([index, text, name])
-        } : null;
-      })
-      .filter(Boolean);
-  }
-
-  function loadMapCatalog() {
-    const data = readJson(path.join(dataDir, "MapInfos.json")) || [];
-    if (!Array.isArray(data)) return [];
-    return data
-      .filter((entry) => entry && Number.isFinite(Number(entry.id)) && entry.name)
-      .map((entry) => {
-        const parent = entry.parentId == null ? "" : `父级 ${entry.parentId}`;
-        const order = entry.order == null ? "" : `序 ${entry.order}`;
-        return {
-          id: Number(entry.id),
-          name: cleanText(entry.name),
-          description: [parent, order].filter(Boolean).join(" / "),
-          noteText: "",
-          parentId: entry.parentId,
-          order: entry.order,
-          searchText: makeSearchText([entry.id, entry.name, parent, order])
-        };
-      });
-  }
-
-  function dropKindFromIndex(kind) {
-    if (kind === 1 || kind === "1" || String(kind).toLowerCase() === "item") return "item";
-    if (kind === 2 || kind === "2" || String(kind).toLowerCase() === "weapon") return "weapon";
-    if (kind === 3 || kind === "3" || String(kind).toLowerCase() === "armor") return "armor";
-    return "";
-  }
-
-  function localDropTables() {
-    return {
-      item: readJson(path.join(dataDir, "Items.json")) || [],
-      weapon: readJson(path.join(dataDir, "Weapons.json")) || [],
-      armor: readJson(path.join(dataDir, "Armors.json")) || []
-    };
-  }
-
-  function localDropNamesOfEnemy(enemy, tables = localDropTables()) {
-    const names = [];
-    const seen = new Set<string>();
-    const add = (kind, id) => {
-      const normalized = dropKindFromIndex(kind);
-      const table = tables[normalized];
-      const entry = table && table[Number(id)];
-      if (!normalized || !entry || !entry.name) return;
-      const key = `${normalized}:${id}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-      names.push(`${itemKindLabels[normalized] || normalized}:${cleanText(entry.name)}`);
-    };
-    const note = String(enemy && enemy.note || "");
-    const match = note.match(/<\s*Enemy Drops\s*>([\s\S]*?)<\s*\/\s*Enemy Drops\s*>/i);
-    if (match) {
-      match[1].split(/\r?\n/).forEach((line) => {
-        const parsed = line.trim().match(/^(item|weapon|armor)\s+(\d+)\s*:/i);
-        if (parsed) add(parsed[1], parsed[2]);
-      });
-    }
-    (enemy && enemy.dropItems || []).forEach((drop) => {
-      if (drop && drop.kind && drop.dataId) add(drop.kind, drop.dataId);
-    });
-    return names;
-  }
-
-  function localTroopDetails(troop, enemies, tables = localDropTables()) {
-    const visibleMembers = (troop && troop.members || []).filter((member) => member && !member.hidden && Number(member.enemyId) > 0);
-    const enemyRows = visibleMembers.map((member) => enemies[Number(member.enemyId)]).filter(Boolean);
-    const enemyCounts: Record<string, any> = {};
-    let exp = 0;
-    let gold = 0;
-    const maps = new Set<string>();
-    const dropNames = new Set<string>();
-    enemyRows.forEach((enemy) => {
-      const enemyId = Number(enemy.id || 0);
-      const enemyName = cleanText(enemy.name || "");
-      const key = `${enemyId}:${enemyName}`;
-      if (!enemyCounts[key]) enemyCounts[key] = { id: enemyId, name: enemyName, count: 0 };
-      enemyCounts[key].count += 1;
-      exp += Number(enemy.exp || 0);
-      gold += Number(enemy.gold || 0);
-      const mapMatch = String(enemy.note || "").match(/<\s*enemyMap\s*:\s*([^>]+)>/i);
-      if (mapMatch && cleanText(mapMatch[1])) maps.add(cleanText(mapMatch[1]));
-      localDropNamesOfEnemy(enemy, tables).forEach((name) => dropNames.add(name));
-    });
-    const enemyList = Array.from(Object.values(enemyCounts));
-    const enemyText = enemyList.map((enemy: any) => `${enemy.name}${enemy.count > 1 ? `x${enemy.count}` : ""}`).join("、");
-    return {
-      enemyList,
-      enemyText,
-      enemyNames: enemyList.map((enemy: any) => enemy.name),
-      exp,
-      gold,
-      maps: Array.from(maps),
-      dropNames: Array.from(dropNames)
-    };
-  }
-
-  function loadHuntMapCatalog() {
-    const mapInfos = readJson(path.join(dataDir, "MapInfos.json")) || [];
-    const troops = readJson(path.join(dataDir, "Troops.json")) || [];
-    const enemies = readJson(path.join(dataDir, "Enemies.json")) || [];
-    const tables = localDropTables();
-    if (!fs.existsSync(dataDir)) return [];
-    try {
-      const ids = new Set<number>();
-      if (Array.isArray(mapInfos)) {
-        mapInfos.forEach((entry) => {
-          if (entry && Number(entry.id) > 0 && entry.name) ids.add(Number(entry.id));
-        });
-      }
-      fs.readdirSync(dataDir).forEach((name) => {
-        const match = name.match(/^Map(\d{3})\.json$/i);
-        if (match) ids.add(Number(match[1]));
-      });
-      return Array.from(ids)
-        .sort((a, b) => a - b)
-        .map((id) => {
-          const map = readJson(path.join(dataDir, `Map${String(id).padStart(3, "0")}.json`));
-          const info = mapInfos[id] || {};
-          if (!map && !info.name) return null;
-          const encounters = map && Array.isArray(map.encounterList)
-            ? map.encounterList.filter((entry) => entry && Number(entry.troopId) > 0)
-            .map((entry) => ({
-              troopId: Number(entry.troopId),
-              weight: Number(entry.weight || 0),
-              regionSet: Array.isArray(entry.regionSet) ? entry.regionSet.map(Number).filter(Number.isFinite) : []
-            }))
-            : [];
-          const hasEncounters = encounters.length > 0;
-          const nameText = cleanText(map && map.displayName || info.name || `Map${id}`);
-          const troopIds = Array.from(new Set<number>(encounters.map((entry) => Number(entry.troopId)))).sort((a, b) => a - b);
-          const troopNames = troopIds
-            .map((troopId) => troops[troopId] && cleanText(troops[troopId].name || ""))
-            .filter(Boolean);
-          const troopDetails = troopIds.map((troopId) => localTroopDetails(troops[troopId], enemies, tables));
-          const enemyNames = Array.from(new Set(troopDetails.flatMap((detail) => detail.enemyNames).filter(Boolean)));
-          const dropNames = Array.from(new Set(troopDetails.flatMap((detail) => detail.dropNames).filter(Boolean)));
-          const regions = Array.from(new Set<number>(encounters.flatMap((entry) => entry.regionSet.map(Number)))).sort((a, b) => a - b);
-          const description = [
-            hasEncounters ? `${encounters.length} 组遇敌` : "无随机遇敌",
-            hasEncounters ? `步数 ${Number(map && map.encounterStep || 0) || "-"}` : "可改用敌群挂机",
-            enemyNames.length ? `怪物 ${enemyNames.length} 种` : troopNames.slice(0, 4).join("、"),
-            dropNames.length ? `掉落 ${dropNames.length} 种` : "",
-            regions.length ? `区域 ${regions.slice(0, 8).join(",")}` : ""
-          ].filter(Boolean).join(" / ");
-          return {
-            id,
-            name: nameText,
-            description,
-            noteText: "",
-            encounterCount: encounters.length,
-            encounterStep: Number(map && map.encounterStep || 0),
-            hasEncounters,
-            troopIds,
-            value: id,
-            label: `${id} / ${nameText}`,
-            searchText: makeSearchText([
-              id,
-              nameText,
-              info.name,
-              troopIds.join(" "),
-              troopNames.join(" "),
-              enemyNames.join(" "),
-              dropNames.join(" "),
-              regions.join(" "),
-              "挂机",
-              "遇敌",
-              "脱机",
-              hasEncounters ? "可挂机" : "无遇敌 无随机遇敌"
-            ])
-          };
-        })
-        .filter(Boolean)
-        .sort((a, b) => Number(!a.hasEncounters) - Number(!b.hasEncounters) || a.id - b.id);
-    } catch {
-      return [];
-    }
-  }
-
-  function loadTroopCatalog() {
-    const troops = readJson(path.join(dataDir, "Troops.json")) || [];
-    const enemies = readJson(path.join(dataDir, "Enemies.json")) || [];
-    const tables = localDropTables();
-    if (!Array.isArray(troops)) return [];
-    return troops
-      .filter((entry) => entry && Number.isFinite(Number(entry.id)) && (entry.name || Array.isArray(entry.members)))
-      .map((entry) => {
-        const id = Number(entry.id);
-        const details = localTroopDetails(entry, enemies, tables);
-        const name = cleanText(entry.name || details.enemyNames.join(", ") || `敌群 ${id}`);
-        const tags = Array.from(name.matchAll(/【([^】]+)】/g)).map((match) => match[1]);
-        const description = [
-          tags.length ? tags.join(" / ") : "",
-          details.enemyText,
-          `EXP ${details.exp}`,
-          `金币 ${details.gold}`,
-          details.dropNames.length ? `掉落 ${details.dropNames.length} 种` : "无掉落表"
-        ].filter(Boolean).join(" / ");
-        return {
-          id,
-          name,
-          description,
-          noteText: "",
-          enemyText: details.enemyText,
-          tags,
-          exp: details.exp,
-          gold: details.gold,
-          maps: details.maps,
-          dropNames: details.dropNames,
-          value: id,
-          label: `${id} / ${name}`,
-          searchText: makeSearchText([
-            id,
-            name,
-            details.enemyText,
-            tags.join(" "),
-            details.maps.join(" "),
-            details.dropNames.join(" "),
-            "敌群",
-            "精英",
-            "首领",
-            "领主",
-            "头目",
-            "稀有",
-            "罕见"
-          ])
-        };
-      })
-      .filter((entry) => entry.name)
-      .sort((a, b) => a.id - b.id);
-  }
-
-  function loadCommonEventCatalog() {
-    const data = readJson(path.join(dataDir, "CommonEvents.json")) || [];
-    if (!Array.isArray(data)) return [];
-    return data
-      .filter((entry) => entry && Number.isFinite(Number(entry.id)) && entry.name)
-      .map((entry) => {
-        const trigger = entry.trigger === 1 ? "自动" : entry.trigger === 2 ? "并行" : "调用";
-        const sw = entry.switchId ? `开关 ${entry.switchId}` : "";
-        return {
-          id: Number(entry.id),
-          name: cleanText(entry.name),
-          description: [trigger, sw].filter(Boolean).join(" / "),
-          noteText: "",
-          trigger: entry.trigger,
-          switchId: entry.switchId,
-          searchText: makeSearchText([entry.id, entry.name, trigger, sw])
-        };
-      });
-  }
-
-  function cleanText(value) {
-    return String(value == null ? "" : value)
-      .replace(/\\[A-Z]+\[[^\]]*\]/gi, "")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
-
-  function cleanNote(value) {
-    return cleanText(value)
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
-
   function catalogName(kind, id) {
-    const list = catalogs[kind] || [];
-    const item = list.find((entry) => {
-      if (kind === "all") return entry.uid === String(id) || entry.id === Number(id);
-      return entry.id === Number(id);
-    });
-    return item ? item.name : "";
+    return Zs2Gui.Catalogs.catalogName(catalogs, kind, id);
   }
 
   function catalogEntry(kind, id) {
-    const list = catalogs[kind] || [];
-    return list.find((entry) => {
-      if (kind === "all") return entry.uid === String(id) || entry.id === Number(id);
-      return entry.id === Number(id);
-    }) || null;
-  }
-
-  function populateDatalist(id, entries) {
-    const list = $(id);
-    if (!list) return;
-    datalistSources.set(id, entries || []);
-    list.innerHTML = filterDatalistEntries(entries || [], "", DATALIST_LIMIT)
-      .map((entry) => {
-        const value = entry.value != null ? entry.value : entry.uid != null ? entry.uid : entry.id;
-        const label = entry.label || entry.name;
-        return `<option value="${escapeHtml(value)}" label="${escapeHtml(label)}"></option>`;
-      })
-      .join("");
-  }
-
-  function refreshPickerDatalist(input) {
-    const listId = input.getAttribute("list");
-    if (!listId) return;
-    const entries = datalistSources.get(listId);
-    if (!entries) return;
-    const list = $(listId);
-    if (!list) return;
-    list.innerHTML = filterDatalistEntries(entries, input.value, DATALIST_LIMIT)
-      .map((entry) => {
-        const value = entry.value != null ? entry.value : entry.uid != null ? entry.uid : entry.id;
-        const label = entry.label || entry.name;
-        return `<option value="${escapeHtml(value)}" label="${escapeHtml(label)}"></option>`;
-      })
-      .join("");
-  }
-
-  function setupIconSet() {
-    try {
-      const bytes = decryptProtectedImage(fs.readFileSync(iconSetPath));
-      const image = new Image();
-      image.onload = () => {
-        iconSetImage = image;
-        iconRenderVersion += 1;
-        renderCatalogs();
-      };
-      image.onerror = () => showToast("图标集图片解码失败");
-      image.src = `data:image/png;base64,${bytes.toString("base64")}`;
-    } catch (error) {
-      showToast(`图标集加载失败：${error.message}`);
-    }
-  }
-
-  function decryptProtectedImage(input) {
-    const data = Buffer.from(input);
-    if (data.length <= 100) return data;
-    const head = data.subarray(0, 100);
-    const body = unshuffleBytes(data.subarray(100));
-    for (let i = 0; i < body.length; i += 1) {
-      body[i] ^= (i % 256) ^ 90;
-    }
-    return Buffer.concat([head, body]);
-  }
-
-  function unshuffleBytes(input) {
-    const bytes = Array.from(input);
-    const swaps = [];
-    let remaining = bytes.length;
-    const random = (max) => {
-      const value = 10000 * Math.sin(12345 + remaining);
-      return Math.floor((value - Math.floor(value)) * max);
-    };
-    while (remaining !== 0) {
-      swaps.push(random(remaining));
-      remaining -= 1;
-    }
-    const positions = Array.from({ length: bytes.length }, (_, index) => index);
-    for (let i = 0; i < swaps.length; i += 1) {
-      const from = swaps[i];
-      const to = positions.length - 1 - i;
-      if (from < to) {
-        const old = positions[from];
-        positions[from] = positions[to];
-        positions[to] = old;
-      }
-    }
-    const output = new Array(bytes.length);
-    for (let i = 0; i < bytes.length; i += 1) output[positions[i]] = bytes[i];
-    return Buffer.from(output);
-  }
-
-  function iconDataUrl(iconIndex) {
-    const index = Math.max(0, Math.floor(Number(iconIndex) || 0));
-    if (iconCache.has(index)) return iconCache.get(index);
-    if (!iconSetImage) return "";
-    const x = (index % 16) * 32;
-    const y = Math.floor(index / 16) * 32;
-    const canvas = document.createElement("canvas");
-    canvas.width = 32;
-    canvas.height = 32;
-    const context = canvas.getContext("2d");
-    context.imageSmoothingEnabled = false;
-    context.drawImage(iconSetImage, x, y, 32, 32, 0, 0, 32, 32);
-    const dataUrl = canvas.toDataURL("image/png");
-    iconCache.set(index, dataUrl);
-    return dataUrl;
-  }
-
-  function iconHtml(iconIndex) {
-    const index = Math.max(0, Math.floor(Number(iconIndex) || 0));
-    const fileName = `icon_${index}.png`;
-    if (fs.existsSync(path.join(iconDir, fileName))) {
-      return `<img class="rpg-icon" src="icons/${fileName}" alt="">`;
-    }
-    const dataUrl = iconDataUrl(iconIndex);
-    if (!dataUrl) return '<span class="rpg-icon icon-pending"></span>';
-    return `<img class="rpg-icon" src="${dataUrl}" alt="">`;
-  }
-
-  function actorAvatarHtml(actor) {
-    return `<span class="actor-avatar">${escapeHtml(actor.id)}</span>`;
-  }
-
-  function badgeHtml(label, tone = "") {
-    return `<span class="catalog-badge ${tone}">${escapeHtml(label)}</span>`;
-  }
-
-  function entryMatchesSearch(entry, needle) {
-    if (!needle) return true;
-    if (entry.searchText && entry.searchText.includes(needle)) return true;
-    return [
-      entry.id,
-      entry.uid,
-      entry.value,
-      entry.label,
-      entry.name,
-      entry.description,
-      entry.noteText
-    ].some((part) => String(part == null ? "" : part).toLowerCase().includes(needle));
-  }
-
-  function filterDatalistEntries(entries, query, limit) {
-    const needle = String(query || "").trim().toLowerCase();
-    if (!needle) return entries.slice(0, limit);
-    const result = [];
-    for (const entry of entries) {
-      if (!entryMatchesSearch(entry, needle)) continue;
-      result.push(entry);
-      if (result.length >= limit) break;
-    }
-    return result;
-  }
-
-  function filterEntries(entries, query) {
-    const needle = String(query || "").trim().toLowerCase();
-    if (!needle) {
-      return {
-        entries: entries.slice(),
-        total: entries.length,
-        hasMore: false,
-        exact: true
-      };
-    }
-    const result = [];
-    for (const entry of entries) {
-      if (!entryMatchesSearch(entry, needle)) continue;
-      result.push(entry);
-    }
-    return {
-      entries: result,
-      total: result.length,
-      hasMore: false,
-      exact: true
-    };
-  }
-
-  function catalogEntryKey(entry, options) {
-    return options.key ? options.key(entry) : entry.id;
-  }
-
-  function catalogPageFor(targetId, queryKey) {
-    const current = catalogPages.get(targetId);
-    if (current && current.queryKey === queryKey) return current;
-    const next = { queryKey, page: 1, pageSize: CATALOG_PAGE_SIZE };
-    catalogPages.set(targetId, next);
-    return next;
-  }
-
-  function clampCatalogPage(state, total) {
-    const pageCount = Math.max(1, Math.ceil(Math.max(0, Number(total || 0)) / state.pageSize));
-    state.page = Math.min(Math.max(1, Math.floor(Number(state.page || 1))), pageCount);
-    return pageCount;
-  }
-
-  function catalogPageStart(state) {
-    return (Math.max(1, Number(state.page || 1)) - 1) * state.pageSize;
-  }
-
-  function catalogCountText(result, page, pageCount) {
-    if (!result.total) return "0 条";
-    return `共 ${result.total} 条 / ${page}/${pageCount} 页`;
+    return Zs2Gui.Catalogs.catalogEntry(catalogs, kind, id);
   }
 
   function selectedNumber(id) {
@@ -836,281 +120,37 @@ declare const nw: any;
     return Math.max(1, visualScale, deviceScale);
   }
 
-  function catalogRowHeight() {
-    if (window.innerWidth <= 760) return 128;
-    if (document.body.classList.contains("zoom-scroll-mode")) return 112;
-    if (document.body.classList.contains("page-scroll-mode")) return 100;
-    return DEFAULT_CATALOG_ROW_HEIGHT;
-  }
-
-  function catalogRowHtml(entry, options, selectedId, top, rowHeight) {
-    const rowKey = options.key ? options.key(entry) : entry.id;
-    const rowKind = options.rowKind ? options.rowKind(entry) : options.kind || "";
-    const active = String(rowKey) === String(selectedId) ? " active" : "";
-    const leading = options.leading(entry);
-    const actions = options.actions(entry);
-    const extra = options.extra ? options.extra(entry) : "";
-    const description = options.description ? options.description(entry) : "";
-    return `<div class="catalog-row${active}" style="top:${top}px;--catalog-row-height:${rowHeight}px" data-kind="${escapeHtml(rowKind)}" data-id="${entry.id}">
-      ${leading}
-      <div class="catalog-main">
-        <span class="catalog-name">${escapeHtml(entry.name)}</span>
-        <span class="catalog-meta">ID ${entry.id}${extra ? " / " + escapeHtml(extra) : ""}</span>
-        ${description ? `<span class="catalog-desc">${escapeHtml(description)}</span>` : ""}
-      </div>
-      <div class="catalog-actions">${actions}</div>
-    </div>`;
-  }
-
-  function renderVirtualCatalog(target) {
-    const view = catalogViews.get(target.id);
-    if (!view) return;
-    if (!elementIsVisible(target)) return;
-    if (target.classList.contains("catalog-list-collapsed")) return;
-    const entries = view.entries;
-    const options = view.options;
-    if (!entries.length) {
-      target.innerHTML = '<div class="catalog-empty">没有匹配项</div>';
-      view.renderKey = "empty";
-      return;
-    }
-    const rowHeight = view.rowHeight;
-    const selectedId = options.selectedId;
-    const renderKey = `static:${selectedId}:${view.page}:${entries.length}:${target.clientWidth}:${rowHeight}:${iconRenderVersion}`;
-    if (view.renderKey === renderKey) return;
-    view.renderKey = renderKey;
-    const rows = entries.map((entry, index) => catalogRowHtml(entry, options, selectedId, index * rowHeight, rowHeight));
-    target.innerHTML = `<div class="catalog-spacer" style="height:${entries.length * rowHeight}px">${rows.join("")}</div>`;
-  }
-
-  function renderCatalogList(target, entries, options) {
-    const previous = catalogViews.get(target.id);
-    const queryKey = `${options.kind || ""}:${options.query || ""}`;
-    const pageState = catalogPageFor(target.id, queryKey);
-    const filtered = filterEntries(entries, options.query);
-    let pageCount = clampCatalogPage(pageState, filtered.total);
-    const selectedKey = options.selectedId == null ? "" : String(options.selectedId);
-    const shouldLocateSelected = previous && previous.selectedKey !== selectedKey && selectedKey && filtered.entries.length;
-    if (shouldLocateSelected) {
-      const selectedIndex = filtered.entries.findIndex((entry) => String(catalogEntryKey(entry, options)) === selectedKey);
-      if (selectedIndex >= 0) {
-        pageState.page = Math.floor(selectedIndex / pageState.pageSize) + 1;
-        pageCount = clampCatalogPage(pageState, filtered.total);
-      }
-    }
-    const pageStart = catalogPageStart(pageState);
-    const visibleEntries = filtered.entries.slice(pageStart, pageStart + pageState.pageSize);
-    catalogViews.set(target.id, {
-      entries: visibleEntries,
-      sourceEntries: entries,
-      filteredEntries: filtered.entries,
-      options,
-      rowHeight: catalogRowHeight(),
-      queryKey,
-      page: pageState.page,
-      pageSize: pageState.pageSize,
-      pageCount,
-      filtered,
-      selectedKey
-    });
-    if (!previous || previous.queryKey !== queryKey) target.scrollTop = 0;
-    if (options.countTarget) {
-      options.countTarget.textContent = catalogCountText(filtered, pageState.page, pageCount);
-    }
-    updateCatalogLimitTools(target);
-    if (!elementIsVisible(target)) return;
-    renderVirtualCatalog(target);
-  }
-
-  function renderItemList() {
-    const kind = $("itemKind").value;
-    const entries = catalogs[kind] || [];
-    const selection = parseItemSelection();
-    renderCatalogList(dom.itemList, entries, {
-      kind,
-      query: $("itemSearch").value,
-      selectedId: kind === "all" ? itemSelectionKey(selection) : selection.id,
-      key: (entry) => entry.uid || entry.id,
-      rowKind: (entry) => entry.kind || kind,
-      leading: (entry) => iconHtml(entry.iconIndex),
-      extra: (entry) => entry.kindLabel || "",
-      actions: (entry) => `<button data-catalog-action="item-add" data-kind="${entry.kind || kind}" data-id="${entry.id}">添加</button>`,
-      description: (entry) => entry.description || entry.noteText,
-      countTarget: dom.itemListCount
-    });
-  }
-
-  function renderSkillList() {
-    const entries = catalogs.skill || [];
-    renderCatalogList(dom.skillList, entries, {
-      kind: "skill",
-      query: $("skillSearch").value,
-      selectedId: selectedNumber("skillId"),
-      leading: (entry) => iconHtml(entry.iconIndex),
-      actions: (entry) => `<button data-catalog-action="skill-learn" data-id="${entry.id}">学会</button><button data-catalog-action="skill-forget" data-id="${entry.id}">遗忘</button>`,
-      description: (entry) => entry.description || entry.noteText,
-      countTarget: dom.skillListCount
-    });
-  }
-
-  function renderBabySkillList() {
-    const entries = catalogs.skill || [];
-    renderCatalogList(dom.babySkillList, entries, {
-      kind: "babySkill",
-      query: $("babySkillSearch").value,
-      selectedId: selectedNumber("babySkillId"),
-      leading: (entry) => iconHtml(entry.iconIndex),
-      actions: (entry) => `<button data-catalog-action="baby-skill-learn" data-id="${entry.id}">添加</button><button data-catalog-action="baby-skill-forget" data-id="${entry.id}">移除</button>`,
-      description: (entry) => entry.description || entry.noteText,
-      countTarget: dom.babySkillListCount
-    });
-  }
-
-  function renderTitleList() {
-    const entries = catalogs.title || [];
-    renderCatalogList(dom.titleList, entries, {
-      kind: "title",
-      query: $("titleSearch").value,
-      selectedId: selectedNumber("titleId"),
-      leading: (entry) => badgeHtml(entry.id, "title"),
-      extra: (entry) => entry.sourceId ? `成就 ${entry.sourceId}` : "",
-      actions: (entry) => `<button data-catalog-action="title-unlock" data-id="${entry.id}">解锁</button>`,
-      description: (entry) => entry.description,
-      countTarget: dom.titleListCount
-    });
-  }
-
-  function renderCostumeList() {
-    const entries = catalogs.costume || [];
-    renderCatalogList(dom.costumeList, entries, {
-      kind: "costume",
-      query: $("costumeSearch").value,
-      selectedId: selectedNumber("costumeId"),
-      leading: (entry) => badgeHtml(entry.id, "cloth"),
-      extra: (entry) => [entry.equipId ? `装备 ${entry.equipId}` : "", entry.characterName].filter(Boolean).join(" / "),
-      actions: (entry) => `<button data-catalog-action="costume-unlock" data-id="${entry.id}">解锁</button>`,
-      description: (entry) => entry.description,
-      countTarget: dom.costumeListCount
-    });
-  }
-
-  function renderActorList() {
-    const entries = catalogs.actor || [];
-    renderCatalogList(dom.actorList, entries, {
-      kind: "actor",
-      query: $("actorSearch").value,
-      selectedId: selectedNumber("actorId"),
-      leading: actorAvatarHtml,
-      extra: (entry) => entry.faceName || entry.characterName || "",
-      actions: (entry) => `<button data-catalog-action="actor-unlock" data-id="${entry.id}">解锁</button><button data-catalog-action="actor-select" data-id="${entry.id}">编辑</button>`,
-      countTarget: dom.actorListCount
-    });
-  }
-
-  function renderVariableList() {
-    const entries = catalogs.variable || [];
-    renderCatalogList(dom.variableList, entries, {
-      kind: "variable",
-      query: $("variableSearch").value,
-      selectedId: selectedNumber("variableId"),
-      leading: (entry) => badgeHtml(entry.id, "var"),
-      actions: (entry) => `<button data-catalog-action="variable-select" data-id="${entry.id}">填入</button><button data-catalog-action="variable-set" data-id="${entry.id}">写入</button>`,
-      countTarget: dom.variableListCount
-    });
-  }
-
-  function renderSwitchList() {
-    const entries = catalogs.switch || [];
-    renderCatalogList(dom.switchList, entries, {
-      kind: "switch",
-      query: $("switchSearch").value,
-      selectedId: selectedNumber("switchId"),
-      leading: (entry) => badgeHtml(entry.id, "switch"),
-      actions: (entry) => `<button data-catalog-action="switch-on" data-id="${entry.id}">ON</button><button data-catalog-action="switch-off" data-id="${entry.id}">OFF</button>`,
-      countTarget: dom.switchListCount
-    });
-  }
-
-  function renderMapList() {
-    const entries = catalogs.map || [];
-    renderCatalogList(dom.mapList, entries, {
-      kind: "map",
-      query: $("mapSearch").value,
-      selectedId: selectedNumber("mapId"),
-      leading: (entry) => badgeHtml(entry.id, "map"),
-      actions: (entry) => `<button data-catalog-action="map-transfer" data-id="${entry.id}">传送</button>`,
-      description: (entry) => entry.description,
-      countTarget: dom.mapListCount
-    });
-  }
-
-  function renderOfflineHuntMapList() {
-    const entries = catalogs.huntMap || [];
-    renderCatalogList(dom.offlineHuntMapList, entries, {
-      kind: "huntMap",
-      query: $("offlineHuntMapSearch").value,
-      selectedId: selectedNumber("offlineHuntMapId"),
-      leading: (entry) => badgeHtml(entry.id, "map"),
-      extra: (entry) => entry.hasEncounters ? "" : "无遇敌",
-      actions: (entry) => entry.hasEncounters
-        ? `<button data-catalog-action="offline-hunt-select" data-id="${entry.id}">选择</button>`
-        : `<button disabled title="没有随机遇敌配置">无遇敌</button>`,
-      description: (entry) => entry.description,
-      countTarget: dom.offlineHuntMapListCount
-    });
-  }
-
-  function renderOfflineHuntTroopList() {
-    const entries = catalogs.troop || [];
-    renderCatalogList(dom.offlineHuntTroopList, entries, {
-      kind: "huntTroop",
-      query: $("offlineHuntTroopSearch").value,
-      selectedId: selectedNumber("offlineHuntTroopId"),
-      leading: (entry) => badgeHtml(entry.id, "troop"),
-      actions: (entry) => `<button data-catalog-action="offline-troop-select" data-id="${entry.id}">选择</button><button data-catalog-action="offline-troop-run" data-id="${entry.id}">执行</button><button data-catalog-action="battle-start" data-id="${entry.id}">战斗</button>`,
-      extra: (entry) => entry.tags && entry.tags.length ? entry.tags.join("/") : "",
-      description: (entry) => entry.description,
-      countTarget: dom.offlineHuntTroopListCount
-    });
-  }
-
-  function renderCommonEventList() {
-    const entries = catalogs.commonEvent || [];
-    renderCatalogList(dom.commonEventList, entries, {
-      kind: "commonEvent",
-      query: $("commonEventSearch").value,
-      selectedId: selectedNumber("commonEventId"),
-      leading: (entry) => badgeHtml(entry.id, "event"),
-      actions: (entry) => `<button data-catalog-action="common-event-run" data-id="${entry.id}">运行</button>`,
-      description: (entry) => entry.description,
-      countTarget: dom.commonEventListCount
-    });
-  }
-
-  const catalogRenderers: Record<string, () => void> = {
-    itemList: renderItemList,
-    skillList: renderSkillList,
-    babySkillList: renderBabySkillList,
-    actorList: renderActorList,
-    titleList: renderTitleList,
-    costumeList: renderCostumeList,
-    variableList: renderVariableList,
-    switchList: renderSwitchList,
-    mapList: renderMapList,
-    offlineHuntMapList: renderOfflineHuntMapList,
-    offlineHuntTroopList: renderOfflineHuntTroopList,
-    commonEventList: renderCommonEventList
-  };
-
-  function elementIsVisible(element) {
-    return !!(element && element.offsetParent !== null && !element.closest("[hidden]"));
-  }
+  const catalogRendererTable: Record<string, () => void> = {};
+  const catalogView = Zs2Gui.CatalogView.create({
+    documentRef: document,
+    windowRef: window,
+    byId: $,
+    escapeHtml,
+    renderers: catalogRendererTable,
+    iconVersion: () => iconRenderer.version(),
+    activateAdjacentToolSection
+  });
+  const catalogRenderers = Zs2Gui.CatalogRenderers.create({
+    catalogs,
+    catalogView,
+    iconRenderer,
+    dom,
+    byId: $,
+    selectedNumber,
+    parseItemSelection,
+    itemSelectionKey
+  });
+  Object.assign(catalogRendererTable, catalogRenderers.renderers);
+  const offlineHuntView = Zs2Gui.OfflineHuntView.create({
+    dom,
+    catalogs,
+    itemKindLabels,
+    escapeHtml,
+    formatNumber
+  });
 
   function renderActiveCatalogs() {
-    CATALOG_LIST_IDS.forEach((id) => {
-      const element = $(id);
-      if (elementIsVisible(element) && catalogRenderers[id]) catalogRenderers[id]();
-    });
+    catalogView.renderActiveCatalogs();
   }
 
   function renderCatalogs() {
@@ -1118,24 +158,12 @@ declare const nw: any;
   }
 
   function readEvents() {
-    try {
-      if (!fs.existsSync(eventPath)) return [];
-      const text = fs.readFileSync(eventPath, "utf8").trim();
-      if (!text) return [];
-      return text.split(/\r?\n/).map((line) => {
-        try {
-          return JSON.parse(line);
-        } catch {
-          return null;
-        }
-      }).filter(Boolean);
-    } catch {
-      return [];
-    }
+    return bridgeClient.readEvents();
   }
 
-  function showToast(message) {
+  function showToast(message, kind = "info") {
     dom.toast.textContent = message;
+    dom.toast.className = `toast toast-${kind}`;
     dom.toast.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => dom.toast.classList.remove("show"), 2600);
@@ -1147,10 +175,7 @@ declare const nw: any;
   }
 
   function formatNumber(value) {
-    if (value == null || value === "") return "-";
-    const number = Number(value);
-    if (!Number.isFinite(number)) return String(value);
-    return new Intl.NumberFormat("zh-CN").format(number);
+    return Zs2Gui.Format.formatNumber(value);
   }
 
   function parseValue(text) {
@@ -1167,12 +192,7 @@ declare const nw: any;
   }
 
   function escapeHtml(value) {
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
+    return Zs2Gui.Format.escapeHtml(value);
   }
 
   function numberValue(id, fallback = 0) {
@@ -1188,12 +208,7 @@ declare const nw: any;
   }
 
   function looseNumber(value) {
-    const text = String(value == null ? "" : value).trim();
-    if (text === "") return NaN;
-    const direct = Number(text);
-    if (Number.isFinite(direct)) return direct;
-    const match = text.match(/-?\d+(?:\.\d+)?/);
-    return match ? Number(match[0]) : NaN;
+    return Zs2Gui.Format.looseNumber(value);
   }
 
   function activeActorId() {
@@ -1259,22 +274,22 @@ declare const nw: any;
   }
 
   function setupCatalogs() {
-    populateDatalist("allOptions", catalogs.all);
-    populateDatalist("itemOptions", catalogs.item);
-    populateDatalist("weaponOptions", catalogs.weapon);
-    populateDatalist("armorOptions", catalogs.armor);
-    populateDatalist("actorOptions", catalogs.actor);
-    populateDatalist("skillOptions", catalogs.skill);
+    catalogView.populateDatalist("allOptions", catalogs.all);
+    catalogView.populateDatalist("itemOptions", catalogs.item);
+    catalogView.populateDatalist("weaponOptions", catalogs.weapon);
+    catalogView.populateDatalist("armorOptions", catalogs.armor);
+    catalogView.populateDatalist("actorOptions", catalogs.actor);
+    catalogView.populateDatalist("skillOptions", catalogs.skill);
     babyOptionsSignature = "";
-    populateDatalist("babyOptions", []);
-    populateDatalist("titleOptions", catalogs.title);
-    populateDatalist("costumeOptions", catalogs.costume);
-    populateDatalist("variableOptions", catalogs.variable);
-    populateDatalist("switchOptions", catalogs.switch);
-    populateDatalist("mapOptions", catalogs.map);
-    populateDatalist("offlineHuntMapOptions", catalogs.huntMap);
-    populateDatalist("offlineHuntTroopOptions", catalogs.troop);
-    populateDatalist("commonEventOptions", catalogs.commonEvent);
+    catalogView.populateDatalist("babyOptions", []);
+    catalogView.populateDatalist("titleOptions", catalogs.title);
+    catalogView.populateDatalist("costumeOptions", catalogs.costume);
+    catalogView.populateDatalist("variableOptions", catalogs.variable);
+    catalogView.populateDatalist("switchOptions", catalogs.switch);
+    catalogView.populateDatalist("mapOptions", catalogs.map);
+    catalogView.populateDatalist("offlineHuntMapOptions", catalogs.huntMap);
+    catalogView.populateDatalist("offlineHuntTroopOptions", catalogs.troop);
+    catalogView.populateDatalist("commonEventOptions", catalogs.commonEvent);
     $("itemKind").addEventListener("change", () => {
       const kind = $("itemKind").value;
       $("itemId").setAttribute("list", `${kind}Options`);
@@ -1284,33 +299,33 @@ declare const nw: any;
       } else if (/^(item|weapon|armor)\s*:/i.test($("itemId").value)) {
         $("itemId").value = String(parseItemSelection().id || "");
       }
-      refreshPickerDatalist($("itemId"));
+      catalogView.refreshPickerDatalist($("itemId"));
       updateLookupHints();
-      renderItemList();
+      catalogRenderers.renderItemList();
     });
-    $("itemSearch").addEventListener("input", debounce(renderItemList));
-    $("skillSearch").addEventListener("input", debounce(renderSkillList));
-    $("babySkillSearch").addEventListener("input", debounce(renderBabySkillList));
-    $("actorSearch").addEventListener("input", debounce(renderActorList));
-    $("titleSearch").addEventListener("input", debounce(renderTitleList));
-    $("costumeSearch").addEventListener("input", debounce(renderCostumeList));
-    $("variableSearch").addEventListener("input", debounce(renderVariableList));
-    $("switchSearch").addEventListener("input", debounce(renderSwitchList));
-    $("mapSearch").addEventListener("input", debounce(renderMapList));
-    $("offlineHuntMapSearch").addEventListener("input", debounce(renderOfflineHuntMapList));
-    $("offlineHuntTroopSearch").addEventListener("input", debounce(renderOfflineHuntTroopList));
-    $("commonEventSearch").addEventListener("input", debounce(renderCommonEventList));
+    $("itemSearch").addEventListener("input", debounce(catalogRenderers.renderItemList.bind(catalogRenderers)));
+    $("skillSearch").addEventListener("input", debounce(catalogRenderers.renderSkillList.bind(catalogRenderers)));
+    $("babySkillSearch").addEventListener("input", debounce(catalogRenderers.renderBabySkillList.bind(catalogRenderers)));
+    $("actorSearch").addEventListener("input", debounce(catalogRenderers.renderActorList.bind(catalogRenderers)));
+    $("titleSearch").addEventListener("input", debounce(catalogRenderers.renderTitleList.bind(catalogRenderers)));
+    $("costumeSearch").addEventListener("input", debounce(catalogRenderers.renderCostumeList.bind(catalogRenderers)));
+    $("variableSearch").addEventListener("input", debounce(catalogRenderers.renderVariableList.bind(catalogRenderers)));
+    $("switchSearch").addEventListener("input", debounce(catalogRenderers.renderSwitchList.bind(catalogRenderers)));
+    $("mapSearch").addEventListener("input", debounce(catalogRenderers.renderMapList.bind(catalogRenderers)));
+    $("offlineHuntMapSearch").addEventListener("input", debounce(catalogRenderers.renderOfflineHuntMapList.bind(catalogRenderers)));
+    $("offlineHuntTroopSearch").addEventListener("input", debounce(catalogRenderers.renderOfflineHuntTroopList.bind(catalogRenderers)));
+    $("commonEventSearch").addEventListener("input", debounce(catalogRenderers.renderCommonEventList.bind(catalogRenderers)));
     $("itemId").addEventListener("input", () => {
       updateLookupHints();
-      renderItemList();
+      catalogRenderers.renderItemList();
     });
     $("actorId").addEventListener("input", () => {
       updateLookupHints();
-      renderActorList();
+      catalogRenderers.renderActorList();
     });
     $("skillId").addEventListener("input", () => {
       updateLookupHints();
-      renderSkillList();
+      catalogRenderers.renderSkillList();
     });
     $("babyActorId").addEventListener("input", updateLookupHints);
     $("babyActorId").addEventListener("change", () => {
@@ -1320,7 +335,7 @@ declare const nw: any;
     ["babySkillId", "babyActionSlot", "babySkillMode", "babyLearnSlots"].forEach((id) => {
       $(id).addEventListener("input", () => {
         updateLookupHints();
-        renderBabySkillList();
+        catalogRenderers.renderBabySkillList();
       });
     });
     ["skillActorId"].forEach((id) => {
@@ -1329,19 +344,19 @@ declare const nw: any;
     ["talentActorId", "titleId", "costumeId"].forEach((id) => {
       $(id).addEventListener("input", () => {
         updateLookupHints();
-        if (id === "titleId") renderTitleList();
-        else if (id === "costumeId") renderCostumeList();
+        if (id === "titleId") catalogRenderers.renderTitleList();
+        else if (id === "costumeId") catalogRenderers.renderCostumeList();
       });
     });
     ["variableId", "switchId", "mapId", "offlineHuntMapId", "offlineHuntTroopId", "battleTroopId", "commonEventId"].forEach((id) => {
       $(id).addEventListener("input", () => {
         updateLookupHints();
-        if (id === "variableId") renderVariableList();
-        else if (id === "switchId") renderSwitchList();
-        else if (id === "mapId") renderMapList();
-        else if (id === "offlineHuntMapId") renderOfflineHuntMapList();
-        else if (id === "offlineHuntTroopId") renderOfflineHuntTroopList();
-        else if (id === "commonEventId") renderCommonEventList();
+        if (id === "variableId") catalogRenderers.renderVariableList();
+        else if (id === "switchId") catalogRenderers.renderSwitchList();
+        else if (id === "mapId") catalogRenderers.renderMapList();
+        else if (id === "offlineHuntMapId") catalogRenderers.renderOfflineHuntMapList();
+        else if (id === "offlineHuntTroopId") catalogRenderers.renderOfflineHuntTroopList();
+        else if (id === "commonEventId") catalogRenderers.renderCommonEventList();
       });
     });
     updateLookupHints();
@@ -1354,18 +369,18 @@ declare const nw: any;
       input.dataset.pickerLastValue = input.value || "";
       input.addEventListener("focus", () => {
         const value = String(input.value || "");
-        refreshPickerDatalist(input);
+        catalogView.refreshPickerDatalist(input);
         if (!value.trim()) return;
         input.dataset.pickerLastValue = value;
         input.dataset.pickerCleared = "true";
         input.value = "";
-        refreshPickerDatalist(input);
+        catalogView.refreshPickerDatalist(input);
         input.dispatchEvent(new Event("input", { bubbles: true }));
         input.dataset.pickerLastValue = value;
         input.dataset.pickerCleared = "true";
       });
       input.addEventListener("input", () => {
-        refreshPickerDatalist(input);
+        catalogView.refreshPickerDatalist(input);
         input.dataset.pickerCleared = "false";
         input.dataset.pickerLastValue = input.value || "";
       });
@@ -1373,14 +388,14 @@ declare const nw: any;
         if (event.key !== "Escape" || input.dataset.pickerCleared !== "true") return;
         input.value = input.dataset.pickerLastValue || input.defaultValue || "";
         input.dataset.pickerCleared = "false";
-        refreshPickerDatalist(input);
+        catalogView.refreshPickerDatalist(input);
         input.dispatchEvent(new Event("input", { bubbles: true }));
         input.blur();
       });
       input.addEventListener("blur", () => {
         if (input.dataset.pickerCleared === "true" && !String(input.value || "").trim()) {
           input.value = input.dataset.pickerLastValue || input.defaultValue || "";
-          refreshPickerDatalist(input);
+          catalogView.refreshPickerDatalist(input);
           input.dispatchEvent(new Event("input", { bubbles: true }));
         }
         input.dataset.pickerCleared = "false";
@@ -1437,7 +452,7 @@ declare const nw: any;
     const active = ensureActiveToolSection(tab);
     dom.toolSectionNav.hidden = sections.length <= 1;
     dom.toolSectionNav.innerHTML = sections.map((item) =>
-      `<button type="button" class="${item.section === active ? "active" : ""}" data-tool-section-jump="${escapeHtml(item.section)}">${escapeHtml(item.label)}</button>`
+      `<button type="button" class="${item.section === active ? "active" : ""}"${item.section === active ? ' aria-current="true"' : ""} data-tool-section-jump="${escapeHtml(item.section)}">${escapeHtml(item.label)}</button>`
     ).join("");
     requestAnimationFrame(syncStickyNavMetrics);
   }
@@ -1482,115 +497,6 @@ declare const nw: any;
     const index = Math.max(0, sections.findIndex((item) => item.section === active));
     const next = sections[(index + direction + sections.length) % sections.length];
     if (next) activateToolSection(next.section);
-  }
-
-  function updateCatalogToolLabels(target) {
-    const tools = target.__catalogTools;
-    if (!tools) return;
-    const collapsed = target.classList.contains("catalog-list-collapsed");
-    const expanded = target.classList.contains("catalog-list-expanded");
-    const collapseButton = tools.querySelector('[data-catalog-tool="collapse"]');
-    const expandButton = tools.querySelector('[data-catalog-tool="expand"]');
-    if (collapseButton) collapseButton.textContent = collapsed ? "显示" : "收起";
-    if (expandButton) expandButton.textContent = expanded ? "标准" : "展开";
-  }
-
-  function updateCatalogLimitTools(target) {
-    const tools = target.__catalogTools;
-    if (!tools) return;
-    const view = catalogViews.get(target.id);
-    const status = tools.querySelector('[data-catalog-tool="page-status"]');
-    const firstButton = tools.querySelector('[data-catalog-tool="first"]') as HTMLButtonElement;
-    const prevButton = tools.querySelector('[data-catalog-tool="prev"]') as HTMLButtonElement;
-    const nextButton = tools.querySelector('[data-catalog-tool="next"]') as HTMLButtonElement;
-    const lastButton = tools.querySelector('[data-catalog-tool="last"]') as HTMLButtonElement;
-    if (!view) {
-      if (status) status.textContent = "第 1 / 1 页";
-      [firstButton, prevButton, nextButton, lastButton].forEach((button) => {
-        if (button) button.disabled = true;
-      });
-      return;
-    }
-    const visibleCount = view.entries ? view.entries.length : 0;
-    const total = view.filtered ? Number(view.filtered.total || 0) : 0;
-    const page = Number(view.page || 1);
-    const pageCount = Number(view.pageCount || 1);
-    if (status) {
-      status.textContent = total ? `第 ${page} / ${pageCount} 页 · 本页 ${visibleCount} 条` : "无结果";
-    }
-    if (firstButton) firstButton.disabled = page <= 1 || !total;
-    if (prevButton) prevButton.disabled = page <= 1 || !total;
-    if (nextButton) nextButton.disabled = page >= pageCount || !total;
-    if (lastButton) lastButton.disabled = page >= pageCount || !total;
-  }
-
-  function changeCatalogPage(target, action) {
-    const view = catalogViews.get(target.id);
-    if (!view) return;
-    const state = catalogPageFor(target.id, view.queryKey);
-    const pageCount = Math.max(1, Number(view.pageCount || 1));
-    let nextPage = Number(state.page || 1);
-    if (action === "first") nextPage = 1;
-    else if (action === "prev") nextPage -= 1;
-    else if (action === "next") nextPage += 1;
-    else if (action === "last") nextPage = pageCount;
-    nextPage = Math.min(Math.max(1, Math.floor(nextPage)), pageCount);
-    if (nextPage === state.page) return;
-    state.page = nextPage;
-    target.scrollTop = 0;
-    if (catalogRenderers[target.id]) catalogRenderers[target.id]();
-  }
-
-  function revealCatalog(target) {
-    if (!target.classList.contains("catalog-list-collapsed")) return;
-    target.classList.remove("catalog-list-collapsed");
-    updateCatalogToolLabels(target);
-    requestAnimationFrame(() => renderVirtualCatalog(target));
-  }
-
-  function toggleCatalogCollapsed(target) {
-    const collapsed = target.classList.toggle("catalog-list-collapsed");
-    if (collapsed) target.classList.remove("catalog-list-expanded");
-    updateCatalogToolLabels(target);
-    if (!collapsed) requestAnimationFrame(() => renderVirtualCatalog(target));
-  }
-
-  function toggleCatalogExpanded(target) {
-    target.classList.remove("catalog-list-collapsed");
-    target.classList.toggle("catalog-list-expanded");
-    updateCatalogToolLabels(target);
-    requestAnimationFrame(() => renderVirtualCatalog(target));
-  }
-
-  function setupCatalogTools() {
-    CATALOG_LIST_IDS.forEach((id) => {
-      const target = $(id);
-      if (!target || target.__catalogTools) return;
-      const tools = document.createElement("div");
-      tools.className = "catalog-tools";
-      tools.innerHTML = `
-        <button type="button" data-catalog-tool="collapse">收起</button>
-        <button type="button" data-catalog-tool="expand">展开</button>
-        <button type="button" data-catalog-tool="first">首页</button>
-        <button type="button" data-catalog-tool="prev">上一页</button>
-        <span class="catalog-page-status" data-catalog-tool="page-status">第 1 / 1 页</span>
-        <button type="button" data-catalog-tool="next">下一页</button>
-        <button type="button" data-catalog-tool="last">末页</button>
-        <button type="button" data-catalog-tool="next-section">下一分类</button>
-      `;
-      target.parentNode.insertBefore(tools, target);
-      target.__catalogTools = tools;
-      tools.addEventListener("click", (event) => {
-        const button = (event.target as HTMLElement).closest("[data-catalog-tool]") as HTMLElement;
-        if (!button) return;
-        const action = button.dataset.catalogTool;
-        if (action === "collapse") toggleCatalogCollapsed(target);
-        else if (action === "expand") toggleCatalogExpanded(target);
-        else if (action === "first" || action === "prev" || action === "next" || action === "last") changeCatalogPage(target, action);
-        else if (action === "next-section") activateAdjacentToolSection(1);
-      });
-      updateCatalogToolLabels(target);
-    });
   }
 
   function updateViewportMode() {
@@ -1678,24 +584,18 @@ declare const nw: any;
   }
 
   function sendCommand(command) {
-    ensureBridgeDir();
-    const payload = {
-      ...command,
-      commandId: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      ts: Date.now()
-    };
-    fs.appendFileSync(commandPath, JSON.stringify(payload) + "\n", "utf8");
-    showToast(`已发送：${payload.type}`);
+    const payload = bridgeClient.appendCommand(command);
+    showToast(`已发送：${payload.type}`, "success");
     return payload;
   }
 
   function launchGame() {
     if (!fs.existsSync(trainerGameExe)) {
-      showToast("找不到 Game.exe");
+      showToast("找不到 Game.exe", "error");
       return;
     }
     if (!fs.existsSync(path.join(bridgeExtensionDir, "manifest.json"))) {
-      showToast("找不到 bridge extension");
+      showToast("找不到 bridge extension", "error");
       return;
     }
     try {
@@ -1710,9 +610,9 @@ declare const nw: any;
         stdio: "ignore"
       });
       gameProcess.unref();
-      showToast(`游戏已启动 PID ${gameProcess.pid}`);
+      showToast(`游戏已启动 PID ${gameProcess.pid}`, "success");
     } catch (error) {
-      showToast(`启动失败：${error.message}`);
+      showToast(`启动失败：${error.message}`, "error");
     }
   }
 
@@ -1721,7 +621,7 @@ declare const nw: any;
       fs.mkdirSync(folder, { recursive: true });
       nw.Shell.openItem(folder);
     } catch (error) {
-      showToast(error.message);
+      showToast(error.message, "error");
     }
   }
 
@@ -1737,22 +637,21 @@ declare const nw: any;
 
   function backupSaves() {
     if (!fs.existsSync(saveDir)) {
-      showToast("没有找到存档目录");
+      showToast("没有找到存档目录", "error");
       return;
     }
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const target = path.join(projectRoot, "output", "backup", "save", stamp);
     copyDirectory(saveDir, target);
-    showToast("存档已备份");
+    showToast("存档已备份", "success");
     openFolder(target);
   }
 
   function clearEvents() {
-    ensureBridgeDir();
-    fs.writeFileSync(eventPath, "", "utf8");
+    bridgeClient.clearEvents();
     lastEventSize = 0;
     renderEvents([]);
-    showToast("事件已清空");
+    showToast("事件已清空", "warning");
   }
 
   function sendOptions(options) {
@@ -1780,26 +679,26 @@ declare const nw: any;
     $("itemId").setAttribute("list", `${chooserKind}Options`);
     $("itemId").value = chooserKind === "all" ? `${kind}:${id}` : String(id);
     updateLookupHints();
-    renderItemList();
+    catalogRenderers.renderItemList();
   }
 
   function selectActor(id) {
     $("actorId").value = String(id);
     $("skillActorId").value = String(id);
     updateLookupHints();
-    renderActorList();
+    catalogRenderers.renderActorList();
   }
 
   function selectSkill(id) {
     $("skillId").value = String(id);
     updateLookupHints();
-    renderSkillList();
+    catalogRenderers.renderSkillList();
   }
 
   function selectBabySkill(id) {
     $("babySkillId").value = String(id);
     updateLookupHints();
-    renderBabySkillList();
+    catalogRenderers.renderBabySkillList();
   }
 
   function selectBaby(id) {
@@ -1811,19 +710,19 @@ declare const nw: any;
   function selectTitle(id) {
     $("titleId").value = String(id);
     updateLookupHints();
-    renderTitleList();
+    catalogRenderers.renderTitleList();
   }
 
   function selectCostume(id) {
     $("costumeId").value = String(id);
     updateLookupHints();
-    renderCostumeList();
+    catalogRenderers.renderCostumeList();
   }
 
   function selectVariable(id) {
     $("variableId").value = String(id);
     updateLookupHints();
-    renderVariableList();
+    catalogRenderers.renderVariableList();
   }
 
   function selectSwitch(id, value = switchValue) {
@@ -1834,13 +733,13 @@ declare const nw: any;
       $("switchOffBtn").classList.toggle("active", !switchValue);
     }
     updateLookupHints();
-    renderSwitchList();
+    catalogRenderers.renderSwitchList();
   }
 
   function selectMap(id) {
     $("mapId").value = String(id);
     updateLookupHints();
-    renderMapList();
+    catalogRenderers.renderMapList();
   }
 
   function selectOfflineHuntMap(id) {
@@ -1848,15 +747,15 @@ declare const nw: any;
     $("offlineHuntMapId").value = String(id);
     $("offlineHuntTroopId").value = "";
     updateLookupHints();
-    renderOfflineHuntMapList();
-    renderOfflineHuntTroopList();
+    catalogRenderers.renderOfflineHuntMapList();
+    catalogRenderers.renderOfflineHuntTroopList();
   }
 
   function selectOfflineHuntTroop(id) {
     setOfflineHuntMode("troop");
     $("offlineHuntTroopId").value = String(id);
     updateLookupHints();
-    renderOfflineHuntTroopList();
+    catalogRenderers.renderOfflineHuntTroopList();
   }
 
   function selectBattleTroop(id) {
@@ -1867,7 +766,7 @@ declare const nw: any;
   function selectCommonEvent(id) {
     $("commonEventId").value = String(id);
     updateLookupHints();
-    renderCommonEventList();
+    catalogRenderers.renderCommonEventList();
   }
 
   function addItem(kind, id) {
@@ -1943,7 +842,7 @@ declare const nw: any;
     ].join(":")).join("|");
     if (signature === babyOptionsSignature) return;
     babyOptionsSignature = signature;
-    populateDatalist("babyOptions", babyOptionEntries(rows));
+    catalogView.populateDatalist("babyOptions", babyOptionEntries(rows));
   }
 
   function skillChipList(skills, emptyText) {
@@ -2065,13 +964,13 @@ declare const nw: any;
     const isTroopMode = offlineHuntMode === "troop";
     const troopId = isTroopMode ? optionalNumber("offlineHuntTroopId") : undefined;
     if (isTroopMode && !Number.isFinite(Number(troopId))) {
-      showToast("先选择敌群");
+      showToast("先选择敌群", "warning");
       return null;
     }
     if (!isTroopMode && type === "offlineHunt.run") {
       const map = catalogEntry("huntMap", numberValue("offlineHuntMapId", 31));
       if (map && !map.hasEncounters) {
-        showToast("这张地图没有随机遇敌，不能按地图挂机；请切到敌群挂机");
+        showToast("这张地图没有随机遇敌，不能按地图挂机；请切到敌群挂机", "warning");
         return null;
       }
     }
@@ -2222,13 +1121,13 @@ declare const nw: any;
     const version = state.bridgeVersion || "?";
     const versionOk = version === EXPECTED_BRIDGE_VERSION;
     if (!fresh) setStatus("idle", "离线");
-    else if (!versionOk) setStatus("error", "需重启");
+    else if (!versionOk) setStatus("error", "桥接版本不一致");
     else if (state.lastError) setStatus("error", "有错误");
     else if (state.hasParty) setStatus("online", "已连接");
     else setStatus("idle", "加载中");
 
     dom.bridgeState.textContent = fresh
-      ? `${state.storagePatched ? "已接入" : "已注入"} v${version}${versionOk ? "" : ` -> v${EXPECTED_BRIDGE_VERSION}`}`
+      ? `${state.storagePatched ? "已接入" : "已注入"} v${version}${versionOk ? "" : `，实际 ${version}，期望 ${EXPECTED_BRIDGE_VERSION}`}`
       : "上次状态";
     dom.partyState.textContent = state.hasParty ? "可用" : "未就绪";
     dom.goldState.textContent = formatNumber(state.gold);
@@ -2259,7 +1158,7 @@ declare const nw: any;
     updateBattleButtons(options, fresh && state.hooksPatched, fresh ? state.rateStats : null, fresh ? state.battleStats : null);
     renderBabyList(fresh ? state.baby : null);
     updateProgressPanel(fresh ? state.progress : null);
-    updateOfflineHuntPanel(fresh ? state.offlineHunt : null);
+    offlineHuntView.update(fresh ? state.offlineHunt : null, offlineHuntMode);
     $("offlineHuntPreviewBtn").disabled = !fresh;
     $("offlineHuntRunBtn").disabled = !(fresh && state.hasParty);
     $("offlineHuntPreviewTroopBtn").disabled = !fresh;
@@ -2287,156 +1186,6 @@ declare const nw: any;
       ? `战斗命中 ${battleStats.last.name}`
       : "战斗未命中";
     dom.battleState.textContent = `${noCost} / ${oneHit} / ${invincible} / hooks ${hooksPatched ? "OK" : "--"} / ${last} / ${battle}`;
-  }
-
-  function compactListHtml(rows, emptyText, itemText, limit = 8) {
-    if (!Array.isArray(rows) || !rows.length) return `<span>${escapeHtml(emptyText)}</span>`;
-    return rows.slice(0, limit).map(itemText).join("");
-  }
-
-  function chanceText(chance) {
-    const value = Number(chance);
-    if (!Number.isFinite(value)) return "";
-    const percent = Math.max(0, value * 100);
-    return `${percent >= 10 ? Math.round(percent) : Math.round(percent * 10) / 10}%`;
-  }
-
-  function previewDropRows(preview) {
-    const groups: Record<string, any> = {};
-    (preview && preview.troops || []).forEach((row) => {
-      (row.preview && row.preview.possibleDrops || []).forEach((drop) => {
-        if (!drop || !drop.kind || !drop.id) return;
-        const key = `${drop.kind}:${drop.id}`;
-        if (!groups[key]) {
-          groups[key] = {
-            kind: drop.kind,
-            id: drop.id,
-            name: drop.name || "",
-            chance: Number(drop.chance || 0),
-            quality: drop.quality,
-            qualityLabel: drop.qualityLabel || "",
-            troops: new Set()
-          };
-        }
-        groups[key].chance = Math.max(Number(groups[key].chance || 0), Number(drop.chance || 0));
-        groups[key].troops.add(row.troopId);
-      });
-    });
-    const order = { item: 1, weapon: 2, armor: 3 };
-    return Object.values(groups)
-      .map((entry: any) => ({ ...entry, troopCount: entry.troops.size }))
-      .sort((a: any, b: any) => (order[a.kind] || 9) - (order[b.kind] || 9) || b.chance - a.chance || a.id - b.id);
-  }
-
-  function dropKindSummary(rows) {
-    const counts = rows.reduce((total, row) => {
-      total[row.kind] = Number(total[row.kind] || 0) + 1;
-      return total;
-    }, {});
-    return [
-      `物品 ${formatNumber(counts.item || 0)} 种`,
-      `武器 ${formatNumber(counts.weapon || 0)} 种`,
-      `防具 ${formatNumber(counts.armor || 0)} 种`
-    ].join(" / ");
-  }
-
-  function dropChipName(row) {
-    const quality = row && row.qualityLabel ? `[${row.qualityLabel}] ` : "";
-    return `${quality}${row && (row.name || `${row.kind}:${row.id}`) || ""}`;
-  }
-
-  function updateOfflineHuntPanel(offlineHunt) {
-    const last = offlineHunt && offlineHunt.last;
-    const preview = offlineHunt && offlineHunt.preview;
-    const showPreview = preview && (!last || Number(preview.ts || 0) >= Number(last.ts || 0));
-    if (!offlineHunt) {
-      dom.offlineHuntMetric.textContent = "0";
-      dom.offlineHuntState.textContent = "等待运行时状态";
-      dom.offlineHuntResult.innerHTML = "";
-      return;
-    }
-    if (!offlineHunt.dataAvailable) {
-      dom.offlineHuntMetric.textContent = "0";
-      dom.offlineHuntState.textContent = "缺少 output/extract/data，先执行数据解包/解密";
-      dom.offlineHuntResult.innerHTML = "";
-      return;
-    }
-    if (showPreview || !last) {
-      if (preview) {
-        const average = preview.average || {};
-        dom.offlineHuntMetric.textContent = `${formatNumber(average.exp || 0)} EXP/次`;
-        dom.offlineHuntState.textContent = [
-          preview.mode === "troop" ? `敌群 ${preview.troopId}` : `地图 ${preview.mapId}`,
-          `预览 ${preview.name || preview.mapId}`,
-          `${formatNumber(preview.encounterCount || 0)} 组遇敌`,
-          `金币 ${formatNumber(average.gold || 0)}/次`,
-          preview.encounterStep ? `步数 ${preview.encounterStep}` : ""
-        ].filter(Boolean).join(" / ");
-        const troops = compactListHtml(preview.troops, "无遇敌", (row) =>
-          `<span class="result-chip">${escapeHtml(row.troopId)} ${escapeHtml(row.preview && row.preview.name || "")} / ${formatNumber(row.preview && row.preview.exp || 0)} EXP</span>`
-        , 12);
-        const dropRows = previewDropRows(preview);
-        const drops = compactListHtml(dropRows, "无掉落表", (row) =>
-          `<span class="result-chip">${escapeHtml(itemKindLabels[row.kind] || row.kind)}:${escapeHtml(dropChipName(row))} ${escapeHtml(chanceText(row.chance))}</span>`
-        , 24);
-        dom.offlineHuntResult.innerHTML = `
-          <div><strong>预览</strong>${troops}</div>
-          <div><strong>掉落分类</strong><span>${escapeHtml(dropKindSummary(dropRows))}</span></div>
-          <div><strong>可能掉落</strong>${drops}</div>
-        `;
-        return;
-      }
-      dom.offlineHuntMetric.textContent = "0";
-      dom.offlineHuntState.textContent = offlineHuntMode === "troop"
-        ? `可用敌群 ${catalogs.troop.length} 个，先选择敌群并预览或执行一次`
-        : `可挂机地图 ${catalogs.huntMap.filter((entry) => entry.hasEncounters).length} / 全部地图 ${catalogs.huntMap.length}，先预览或执行一次`;
-      dom.offlineHuntResult.innerHTML = "";
-      return;
-    }
-    const time = new Date(last.ts || Date.now()).toLocaleTimeString("zh-CN", { hour12: false });
-    const lastMode = last.mode === "troop" || Number(last.fixedTroopId || 0) > 0 ? "troop" : "map";
-    dom.offlineHuntMetric.textContent = `${formatNumber(last.exp || 0)} EXP`;
-    dom.offlineHuntState.textContent = [
-      `${time}`,
-      lastMode === "troop" ? `敌群 ${last.fixedTroopId || last.troopId || ""}` : `地图 ${last.mapId}`,
-      `${formatNumber(last.times)} 次`,
-      `金币 ${formatNumber(last.gold || 0)}`,
-      last.autoSell && last.autoSell.gold ? `自动卖 ${formatNumber(last.autoSell.gold)} 金币` : "",
-      last.blockedDrops && last.blockedDrops.count ? `屏蔽 ${formatNumber(last.blockedDrops.count)} 件` : "",
-      last.skippedDrops && last.skippedDrops.count ? `跳过 ${formatNumber(last.skippedDrops.count)} 件` : "",
-      `掉落 ${formatNumber((last.dropSummary || []).length)} 种`,
-      last.enemyBook && last.enemyBook.count ? `图鉴 ${last.enemyBook.count}` : "",
-      last.saved ? `已保存 ${last.saved.id}` : ""
-    ].filter(Boolean).join(" / ");
-    const troops = compactListHtml(last.troopSummary, "无队列", (row) =>
-      `<span class="result-chip">${escapeHtml(row.id)} ${escapeHtml(row.name || "")} x${formatNumber(row.count)}</span>`
-    , 12);
-    const drops = compactListHtml(last.dropSummary, "无掉落", (row) =>
-      `<span class="result-chip">${escapeHtml(itemKindLabels[row.kind] || row.kind || "")}:${escapeHtml(dropChipName(row))} x${formatNumber(row.count)}</span>`
-    , 24);
-    const sold = compactListHtml(last.autoSell && last.autoSell.summary, "无自动卖出", (row) =>
-      `<span class="result-chip">${escapeHtml(itemKindLabels[row.kind] || row.kind || "")}:${escapeHtml(dropChipName(row))} x${formatNumber(row.count)}</span>`
-    , 16);
-    const blocked = compactListHtml(last.blockedDrops && last.blockedDrops.summary, "无屏蔽", (row) =>
-      `<span class="result-chip">${escapeHtml(itemKindLabels[row.kind] || row.kind || "")}:${escapeHtml(dropChipName(row))} x${formatNumber(row.count)}</span>`
-    , 16);
-    const skipped = compactListHtml(last.skippedDrops && last.skippedDrops.summary, "无跳过", (row) =>
-      `<span class="result-chip">${escapeHtml(itemKindLabels[row.kind] || row.kind || "")}:${escapeHtml(dropChipName(row))} x${formatNumber(row.count)}</span>`
-    , 16);
-    const kindCounts = last.dropKindCounts || {};
-    const dropKinds = [
-      `物品 ${formatNumber(kindCounts.item || 0)} 种`,
-      `武器 ${formatNumber(kindCounts.weapon || 0)} 种`,
-      `防具 ${formatNumber(kindCounts.armor || 0)} 种`
-    ].join(" / ");
-    dom.offlineHuntResult.innerHTML = `
-      <div><strong>遇敌</strong>${troops}</div>
-      <div><strong>分类</strong><span>${escapeHtml(dropKinds)}</span></div>
-      <div><strong>掉落</strong>${drops}</div>
-      <div><strong>自动卖出</strong><span>${formatNumber(last.autoSell && last.autoSell.gold || 0)} 金币</span>${sold}</div>
-      <div><strong>已屏蔽</strong>${blocked}</div>
-      <div><strong>已跳过</strong>${skipped}</div>
-    `;
   }
 
   function updateProgressPanel(progress) {
@@ -2474,11 +1223,11 @@ declare const nw: any;
   }
 
   function refresh() {
-    const state = readJson(statePath);
+    const state = bridgeClient.readState();
     renderState(state);
 
     try {
-      const size = fs.existsSync(eventPath) ? fs.statSync(eventPath).size : 0;
+      const size = bridgeClient.eventSize();
       if (size !== lastEventSize) {
         lastEventSize = size;
         renderEvents(readEvents());
@@ -2491,7 +1240,10 @@ declare const nw: any;
   function activateTab(tab) {
     activeToolTab = tab || "core";
     document.querySelectorAll<HTMLElement>("[data-tool-tab]").forEach((button) => {
-      button.classList.toggle("active", button.dataset.toolTab === activeToolTab);
+      const active = button.dataset.toolTab === activeToolTab;
+      button.classList.toggle("active", active);
+      if (active) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
     });
     ensureActiveToolSection(activeToolTab);
     if (activeToolTab === "offline") {
@@ -2509,7 +1261,7 @@ declare const nw: any;
   function recordCurrentPosition() {
     const map = latestState && latestState.currentMap;
     if (!map || !map.mapId) {
-      showToast("还没有读取到当前位置");
+      showToast("还没有读取到当前位置", "warning");
       return;
     }
     recordedPosition = {
@@ -2520,12 +1272,12 @@ declare const nw: any;
       fade: 0
     };
     $("recordedPosition").textContent = `${recordedPosition.mapId} (${recordedPosition.x}, ${recordedPosition.y})`;
-    showToast("已记录当前位置");
+    showToast("已记录当前位置", "success");
   }
 
   function returnRecordedPosition() {
     if (!recordedPosition) {
-      showToast("还没有记录位置");
+      showToast("还没有记录位置", "warning");
       return;
     }
     $("mapId").value = String(recordedPosition.mapId);
@@ -2537,211 +1289,56 @@ declare const nw: any;
     transferMap(recordedPosition.mapId);
   }
 
-  function bind() {
-    document.querySelectorAll<HTMLElement>("[data-tool-tab]").forEach((button) => {
-      button.addEventListener("click", () => activateTab(button.dataset.toolTab));
-    });
-    dom.toolSectionNav.addEventListener("click", (event) => {
-      const button = (event.target as HTMLElement).closest("[data-tool-section-jump]") as HTMLElement;
-      if (!button) return;
-      activateToolSection(button.dataset.toolSectionJump || "");
-    });
-    dom.launchBtn.addEventListener("click", launchGame);
-    dom.refreshBtn.addEventListener("click", refresh);
-    dom.itemList.addEventListener("click", handleCatalogClick);
-    dom.skillList.addEventListener("click", handleCatalogClick);
-    dom.babySkillList.addEventListener("click", handleCatalogClick);
-    dom.actorList.addEventListener("click", handleCatalogClick);
-    dom.titleList.addEventListener("click", handleCatalogClick);
-    dom.costumeList.addEventListener("click", handleCatalogClick);
-    dom.variableList.addEventListener("click", handleCatalogClick);
-    dom.switchList.addEventListener("click", handleCatalogClick);
-    dom.mapList.addEventListener("click", handleCatalogClick);
-    dom.offlineHuntMapList.addEventListener("click", handleCatalogClick);
-    dom.offlineHuntTroopList.addEventListener("click", handleCatalogClick);
-    dom.commonEventList.addEventListener("click", handleCatalogClick);
-    dom.babyList.addEventListener("click", (event) => {
-      const target = event.target as HTMLElement;
-      const button = target.closest<HTMLElement>("[data-baby-select]");
-      const row = target.closest<HTMLElement>("[data-baby-id]");
-      const id = button && button.dataset.babySelect || row && row.dataset.babyId;
-      if (id) selectBaby(Number(id));
-    });
-    bindVirtualScroll(dom.itemList);
-    bindVirtualScroll(dom.skillList);
-    bindVirtualScroll(dom.babySkillList);
-    bindVirtualScroll(dom.actorList);
-    bindVirtualScroll(dom.titleList);
-    bindVirtualScroll(dom.costumeList);
-    bindVirtualScroll(dom.variableList);
-    bindVirtualScroll(dom.switchList);
-    bindVirtualScroll(dom.mapList);
-    bindVirtualScroll(dom.offlineHuntMapList);
-    bindVirtualScroll(dom.offlineHuntTroopList);
-    bindVirtualScroll(dom.commonEventList);
-    setupCatalogTools();
-    bindViewportResize();
-
-    $("goldSetBtn").addEventListener("click", () => sendCommand({ type: "gold.set", value: Number($("goldValue").value || 0) }));
-    $("goldAddBtn").addEventListener("click", () => sendCommand({ type: "gold.add", amount: Number($("goldValue").value || 0) }));
-    document.querySelectorAll<HTMLElement>("[data-gold-add]").forEach((button) => {
-      button.addEventListener("click", () => sendCommand({ type: "gold.add", amount: Number(button.dataset.goldAdd) }));
-    });
-    document.querySelectorAll<HTMLElement>("[data-gold-set]").forEach((button) => {
-      button.addEventListener("click", () => sendCommand({ type: "gold.set", value: Number(button.dataset.goldSet) }));
-    });
-
-    $("variableSetBtn").addEventListener("click", () => setVariable(numberValue("variableId", 0)));
-
-    $("switchOnBtn").addEventListener("click", () => {
-      switchValue = true;
-      $("switchOnBtn").classList.add("active");
-      $("switchOffBtn").classList.remove("active");
-    });
-    $("switchOffBtn").addEventListener("click", () => {
-      switchValue = false;
-      $("switchOffBtn").classList.add("active");
-      $("switchOnBtn").classList.remove("active");
-    });
-    $("switchSetBtn").addEventListener("click", () => setSwitch(numberValue("switchId", 0), switchValue));
-
-    $("itemAddBtn").addEventListener("click", () => {
-      const selection = parseItemSelection();
-      sendCommand({
-        type: "item.add",
-        kind: selection.kind,
-        id: selection.id,
-        amount: numberValue("itemAmount", 1)
-      });
-    });
-
-    $("actorUnlockBtn").addEventListener("click", () => unlockActor(activeActorId()));
-    $("actorAddBtn").addEventListener("click", () => sendCommand({ type: "actor.unlock", id: activeActorId() }));
-    $("actorRemoveBtn").addEventListener("click", () => sendCommand({ type: "actor.remove", id: activeActorId() }));
-    $("actorRecoverBtn").addEventListener("click", () => sendCommand({ type: "actor.recover", id: activeActorId() }));
-    $("actorLevelBtn").addEventListener("click", () => sendCommand({
-      type: "actor.level.set",
-      id: activeActorId(),
-      level: numberValue("actorLevel", 1)
-    }));
-    $("actorExpBtn").addEventListener("click", () => sendCommand({
-      type: "actor.exp.add",
-      id: activeActorId(),
-      amount: numberValue("actorExp", 0)
-    }));
-    $("actorVitalsBtn").addEventListener("click", () => sendCommand({
-      type: "actor.vitals.set",
-      id: activeActorId(),
-      hp: optionalNumber("actorHp"),
-      mp: optionalNumber("actorMp"),
-      tp: optionalNumber("actorTp")
-    }));
-    $("actorParamBtn").addEventListener("click", () => sendCommand({
-      type: "actor.param.add",
-      id: activeActorId(),
-      paramId: numberValue("paramId", 0),
-      value: numberValue("paramValue", 0)
-    }));
-
-    $("skillLearnBtn").addEventListener("click", () => sendCommand({
-      type: "actor.skill.learn",
-      id: skillActorId(),
-      skillId: numberValue("skillId", 0)
-    }));
-    $("skillForgetBtn").addEventListener("click", () => sendCommand({
-      type: "actor.skill.forget",
-      id: skillActorId(),
-      skillId: numberValue("skillId", 0)
-    }));
-    $("babyInfoBtn").addEventListener("click", () => sendCommand({ type: "baby.info" }));
-    $("babySkillAddBtn").addEventListener("click", () => sendCommand(babyCommandBase("baby.skill.learn")));
-    $("babySkillForgetBtn").addEventListener("click", () => sendCommand(babyCommandBase("baby.skill.forget")));
-    $("babySlotsSetBtn").addEventListener("click", () => sendCommand(babySlotsCommand("baby.slots.set", 0)));
-    $("babySlotsAddBtn").addEventListener("click", () => sendCommand(babySlotsCommand("baby.slots.add", 1)));
-    $("babySkillClearPassiveBtn").addEventListener("click", () => {
-      const command: any = { type: "baby.skill.clear", mode: "passive" };
-      const id = optionalNumber("babyActorId");
-      if (id !== undefined) command.id = id;
-      sendCommand(command);
-    });
-    $("unlockEnemyBookBtn").addEventListener("click", () => sendCommand({ type: "progress.enemyBook.unlock" }));
-    $("ratesApplyBtn").addEventListener("click", () => sendOptions({
-      expRate: numberValue("expRate", 1),
-      goldRate: numberValue("goldRate", 1),
-      dropRate: numberValue("dropRate", 1)
-    }));
-    document.querySelectorAll<HTMLElement>("[data-rate]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const rate = Number(button.dataset.rate || 1);
-        $("expRate").value = rate;
-        $("goldRate").value = rate;
-        $("dropRate").value = rate;
-        sendOptions({ expRate: rate, goldRate: rate, dropRate: rate });
-      });
-    });
-    $("talentPointSetBtn").addEventListener("click", () => sendCommand(talentCommandBase("talent.points.set")));
-    $("talentPointAddBtn").addEventListener("click", () => sendCommand(talentCommandBase("talent.points.add")));
-    $("talentPointPartyAddBtn").addEventListener("click", () => sendCommand(talentCommandBase("talent.points.add", true)));
-    $("talentPointInfoBtn").addEventListener("click", () => sendCommand({ type: "talent.points.info", party: true }));
-    $("titleUnlockBtn").addEventListener("click", () => unlockTitle(numberValue("titleId", 0)));
-    $("titleUnlockAllBtn").addEventListener("click", () => sendCommand({ type: "title.unlockAll" }));
-    $("titleInfoBtn").addEventListener("click", () => sendCommand({ type: "title.info" }));
-    $("costumeUnlockBtn").addEventListener("click", () => unlockCostume(numberValue("costumeId", 0)));
-    $("costumeUnlockAllBtn").addEventListener("click", () => sendCommand({ type: "costume.unlockAll" }));
-    $("costumeInfoBtn").addEventListener("click", () => sendCommand({ type: "costume.info" }));
-
-    $("noCostBtn").addEventListener("click", () => sendOptions({ noSkillCost: !$("noCostBtn").classList.contains("active") }));
-    $("oneHitKillBtn").addEventListener("click", () => sendOptions({ oneHitKill: !$("oneHitKillBtn").classList.contains("active") }));
-    $("invincibleBtn").addEventListener("click", () => sendOptions({ invincible: !$("invincibleBtn").classList.contains("active") }));
-    $("battleKillBtn").addEventListener("click", () => sendCommand({ type: "battle.killEnemies" }));
-    $("battleEscapeBtn").addEventListener("click", () => sendCommand({ type: "battle.escape" }));
-    $("battleStartBtn").addEventListener("click", () => startBattle());
-    $("offlineHuntPreviewBtn").addEventListener("click", previewOfflineHunt);
-    $("offlineHuntRunBtn").addEventListener("click", runOfflineHunt);
-    $("offlineHuntPreviewTroopBtn").addEventListener("click", previewOfflineHunt);
-    $("offlineHuntRunTroopBtn").addEventListener("click", runOfflineHunt);
-    $("offlineHuntClearTroopBtn").addEventListener("click", () => {
-      setOfflineHuntMode("map");
-      $("offlineHuntTroopId").value = "";
-      updateLookupHints();
-      renderOfflineHuntTroopList();
-    });
-    document.querySelectorAll<HTMLElement>("[data-offline-hunt-times]").forEach((button) => {
-      button.addEventListener("click", () => {
-        $(offlineHuntMode === "troop" ? "offlineHuntTroopTimes" : "offlineHuntMapTimes").value = String(button.dataset.offlineHuntTimes || 10);
-      });
-    });
-    $("partyRecoverBtn").addEventListener("click", () => sendCommand({ type: "party.recover" }));
-    $("mapTransferBtn").addEventListener("click", () => transferMap(numberValue("mapId", 0)));
-    $("mapThroughBtn").addEventListener("click", () => sendCommand({
-      type: "map.through.set",
-      value: !$("mapThroughBtn").classList.contains("active")
-    }));
-    $("recordPositionBtn").addEventListener("click", recordCurrentPosition);
-    $("returnPositionBtn").addEventListener("click", returnRecordedPosition);
-    $("commonEventRunBtn").addEventListener("click", () => runCommonEvent(numberValue("commonEventId", 0)));
-
-    $("saveGameBtn").addEventListener("click", () => sendCommand({ type: "save", id: Number($("saveSlot").value || 1) }));
-    $("titleRefreshBtn").addEventListener("click", () => sendCommand({ type: "title.refresh" }));
-
-    $("customSendBtn").addEventListener("click", () => {
-      try {
-        const command = JSON.parse($("customCommand").value);
-        sendCommand(command);
-      } catch (error) {
-        showToast(`JSON 错误：${error.message}`);
-      }
-    });
-
-    $("openBridgeBtn").addEventListener("click", () => openFolder(bridgeDir));
-    $("openSaveBtn").addEventListener("click", () => openFolder(saveDir));
-    $("backupSaveBtn").addEventListener("click", backupSaves);
-    $("clearEventsBtn").addEventListener("click", clearEvents);
-  }
-
-  setupIconSet();
+  iconRenderer.setupIconSet();
   setupCatalogs();
-  bind();
+  Zs2Gui.Bindings.bind({
+    documentRef: document,
+    byId: $,
+    dom,
+    bridgeDir,
+    saveDir,
+    catalogView,
+    catalogRenderers,
+    activateTab,
+    activateToolSection,
+    launchGame,
+    refresh,
+    handleCatalogClick,
+    selectBaby,
+    bindVirtualScroll,
+    bindViewportResize,
+    sendCommand,
+    sendOptions,
+    setVariable,
+    setSwitch,
+    getSwitchValue: () => switchValue,
+    setSwitchValue: (value) => { switchValue = value; },
+    parseItemSelection,
+    numberValue,
+    optionalNumber,
+    activeActorId,
+    unlockActor,
+    skillActorId,
+    babyCommandBase,
+    babySlotsCommand,
+    talentCommandBase,
+    unlockTitle,
+    unlockCostume,
+    startBattle,
+    previewOfflineHunt,
+    runOfflineHunt,
+    setOfflineHuntMode,
+    getOfflineHuntMode: () => offlineHuntMode,
+    updateLookupHints,
+    transferMap,
+    recordCurrentPosition,
+    returnRecordedPosition,
+    runCommonEvent,
+    openFolder,
+    backupSaves,
+    clearEvents,
+    showToast
+  });
   activateTab("core");
   setOfflineHuntMode("map");
   refresh();

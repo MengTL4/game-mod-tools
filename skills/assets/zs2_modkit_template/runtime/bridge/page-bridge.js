@@ -5,7 +5,7 @@
   const BABY_PASSIVE_STORE_KEY = "_zs2ModkitBabyPassives";
 
   const bridge = {
-    version: "0.2.37",
+    version: "0.2.40",
     startedAt: new Date().toISOString(),
     startedAtMs: Date.now(),
     processed: Object.create(null),
@@ -323,8 +323,13 @@
   }
 
   function saveFilePath(savefileId) {
+    const rawId = String(savefileId).trim().toLowerCase();
     const id = Number(savefileId);
-    const fileName = id === 0 ? "global.rpgsave" : `file${id}.rpgsave`;
+    const fileName = rawId === "config" || id === -1
+      ? "config.rpgsave"
+      : rawId === "global" || id === 0
+        ? "global.rpgsave"
+        : `file${Math.floor(id)}.rpgsave`;
     return path.join(saveDir, fileName);
   }
 
@@ -402,7 +407,6 @@
       return false;
     }
   }
-
   function safeGold(party) {
     if (!party) return null;
     try {
@@ -723,12 +727,24 @@
     return uniqueNumericIds(ids || []).map(skillInfoById);
   }
 
+  function skillIdFromValue(value) {
+    if (value && typeof value === "object") {
+      for (const key of ["id", "skillId", "_skillId", "_itemId"]) {
+        const id = Math.floor(looseNumber(value[key]));
+        if (Number.isFinite(id) && id > 0) return id;
+      }
+      return NaN;
+    }
+    const id = Math.floor(looseNumber(value));
+    return Number.isFinite(id) && id > 0 ? id : NaN;
+  }
+
   function removeNumericId(values, id) {
     const target = Math.floor(looseNumber(id));
     if (!Array.isArray(values)) return false;
     let changed = false;
     for (let index = values.length - 1; index >= 0; index -= 1) {
-      if (Math.floor(looseNumber(values[index])) === target) {
+      if (skillIdFromValue(values[index]) === target) {
         values.splice(index, 1);
         changed = true;
       }
@@ -760,7 +776,6 @@
     }
     return rows;
   }
-
   function isBabyActor(actor) {
     if (!actor || typeof actor !== "object") return false;
     return !!(actor.isBB || actor.isNewBB || Array.isArray(actor._bbSkill) || actor.BBLeranCount != null || actor.BBLearnCount != null);
@@ -977,6 +992,56 @@
     return actor[BABY_PASSIVE_STORE_KEY];
   }
 
+  function ensureSkillCooldownMetadata(skill) {
+    if (!skill || typeof skill !== "object") return skill;
+    ["cooldown", "stypeCooldown", "cooldownChange", "stypeCooldownChange", "warmupChange", "stypeWarmupChange"].forEach((key) => {
+      if (!skill[key] || typeof skill[key] !== "object") skill[key] = {};
+    });
+    [
+      ["globalCooldown", 0],
+      ["afterBattleCooldown", 0],
+      ["cooldownSteps", 0],
+      ["warmup", 0],
+      ["globalCooldownChange", 0],
+      ["globalWarmupChange", 0]
+    ].forEach(([key, fallback]) => {
+      if (!Number.isFinite(Number(skill[key]))) skill[key] = fallback;
+    });
+    if (typeof skill.bypassCooldown !== "boolean") skill.bypassCooldown = false;
+    if (skill.cooldownEval == null) skill.cooldownEval = "";
+    if (skill.warmupEval == null) skill.warmupEval = "";
+    return skill;
+  }
+
+  function skillObjectForId(skillId) {
+    const id = Math.floor(looseNumber(skillId));
+    if (!Number.isFinite(id) || id <= 0) return null;
+    const table = resolveData("skill") || [];
+    const skill = table[id];
+    if (skill && typeof skill === "object") return ensureSkillCooldownMetadata(skill);
+    return ensureSkillCooldownMetadata({ id, name: "", note: "", stypeId: 0 });
+  }
+  function normalizeBabyRealSkills(actor, passiveIds) {
+    if (!actor || typeof actor !== "object") return [];
+    if (!Array.isArray(actor._realSkills)) actor._realSkills = [];
+    const seen = Object.create(null);
+    const normalized = [];
+    const add = (value) => {
+      const id = skillIdFromValue(value);
+      if (!Number.isFinite(id) || id <= 0 || seen[id]) return;
+      const skill = value && typeof value === "object" ? ensureSkillCooldownMetadata(value) : skillObjectForId(id);
+      if (!skill) return;
+      seen[id] = true;
+      normalized.push(skill);
+    };
+    actor._realSkills.forEach(add);
+    uniqueNumericIds(passiveIds || []).forEach((id) => {
+      if (!seen[id]) add(skillObjectForId(id));
+    });
+    actor._realSkills = normalized;
+    return normalized;
+  }
+
   function syncBabyPassiveSkills(actor) {
     if (!isBabyActor(actor)) return [];
     const ids = uniqueNumericIds([...actorLearnedSkillIds(actor), ...babyPassiveStore(actor)]);
@@ -985,8 +1050,9 @@
     if (!Array.isArray(actor._realSkills)) actor._realSkills = [];
     ids.forEach((id) => {
       pushUniqueNumericId(actor._skills, id);
-      pushUniqueNumericId(actor._realSkills, id);
+      ensureSkillCooldownMetadata(skillObjectForId(id));
     });
+    normalizeBabyRealSkills(actor, ids);
     return ids;
   }
 
@@ -1285,7 +1351,6 @@
       summary: babySummary()
     };
   }
-
   function currentMapInfo() {
     const map = resolveMap();
     const player = resolvePlayer();
@@ -1584,7 +1649,6 @@
       if (scene && scene._skillWindow && typeof scene._skillWindow.refresh === "function") scene._skillWindow.refresh();
     } catch (_) {}
   }
-
   function setTrainerOptions(options) {
     if (!options || typeof options !== "object") return { ...bridge.options };
     const previousNoCost = bridge.options.noSkillCost;
@@ -2160,7 +2224,6 @@
       methods: methods.sort()
     };
   }
-
   function callHangupMethod(methodName, statName) {
     const party = resolveParty();
     if (!party || typeof party[methodName] !== "function") throw new Error(`${methodName} is unavailable`);
@@ -2590,7 +2653,6 @@
     refreshMapAndWindows();
     return { count: members.length };
   }
-
   function runOfflineHunt(command) {
     const party = resolveParty();
     if (!party) throw new Error("game party is unavailable");
@@ -2763,6 +2825,13 @@
       hasNode: true,
       cwd: process.cwd(),
       saveDir,
+      saveTargets: {
+        config: saveFilePath(-1),
+        global: saveFilePath(0),
+        slot1: saveFilePath(1),
+        legacyConfig: path.join(saveDir, "file-1.rpgsave"),
+        configUsesLegacyPath: path.basename(saveFilePath(-1)).toLowerCase() === "file-1.rpgsave"
+      },
       saveDirExists: fs.existsSync(saveDir),
       saveFiles: (() => {
         try {
@@ -2862,7 +2931,6 @@
     }
     return false;
   }
-
   function sanitizeEnemyWeaknessStore() {
     const system = resolveSystem();
     if (!system) return { available: false, repaired: 0, initialized: false };
@@ -3181,7 +3249,6 @@
     refreshMapAndWindows();
     return { count: targetIds.length, saved, weaknessRepair };
   }
-
   function hashString(value) {
     let hash = 2166136261;
     for (let i = 0; i < value.length; i += 1) {
@@ -3200,7 +3267,6 @@
     if (typeof command.id === "string" && /^\d+-[a-f0-9]+$/i.test(command.id)) return command.id;
     return `legacy-${hashString(line || JSON.stringify(command))}`;
   }
-
   function runtimeType(value) {
     if (value === null) return "null";
     if (Array.isArray(value)) return "array";
@@ -3423,83 +3489,36 @@
       results
     };
   }
-
-  function execute(command) {
-    if (!command || typeof command !== "object") throw new Error("invalid command");
-    const type = String(command.type || "");
-    if (type === "ping") {
-      return collectState();
-    }
-    if (type === "runtime.inspect") {
-      return runtimeInspect(command);
-    }
-    if (type === "runtime.search") {
-      return runtimeSearch(command);
-    }
-    if (type === "talent.points.info") {
-      return talentPointsInfo(command);
-    }
-    if (type === "talent.points.set") {
-      return adjustTalentPoints(command, "set");
-    }
-    if (type === "talent.points.add") {
-      return adjustTalentPoints(command, "add");
-    }
-    if (type === "title.info") {
-      return { entries: localTitleEntries(), progress: progressSummary() };
-    }
-    if (type === "title.unlock") {
-      return unlockTitleIds(commandIds(command));
-    }
-    if (type === "title.unlockAll") {
-      return unlockTitleIds(localTitleIds(true));
-    }
-    if (type === "costume.info") {
-      return { entries: localCostumeEntries(), progress: progressSummary() };
-    }
-    if (type === "costume.unlock") {
-      return unlockCostumeIds(commandIds(command));
-    }
-    if (type === "costume.unlockAll") {
-      return unlockCostumeIds(localCostumeEntries().map(entry => entry.id), { all: true });
-    }
-    if (type === "baby.info") {
-      return babySummary();
-    }
-    if (type === "baby.skill.learn") {
-      return learnBabySkill(command);
-    }
-    if (type === "baby.skill.forget") {
-      return forgetBabySkill(command);
-    }
-    if (type === "baby.skill.clear") {
-      return clearBabySkills(command);
-    }
-    if (type === "baby.slots.set") {
-      return setBabyLearnSlots(command, "set");
-    }
-    if (type === "baby.slots.add") {
-      return setBabyLearnSlots(command, "add");
-    }
-    if (type === "trainer.options.get") {
-      return { options: { ...bridge.options }, hooks: patchTrainerHooks() };
-    }
-    if (type === "trainer.hooks.info") {
-      return {
-        options: { ...bridge.options },
-        hooks: patchTrainerHooks(),
-        hookTargets: bridge.hookTargets.slice(),
-        rateStats: { ...bridge.rateStats },
-        battleStats: { ...bridge.battleStats }
-      };
-    }
-    if (type === "trainer.options.set") {
-      return { options: setTrainerOptions(command.options || command) };
-    }
-    if (type === "map.current") {
-      return currentMapInfo();
-    }
-    if (type === "map.transfer") {
+  const commandHandlers = Object.freeze({
+    "ping": () => collectState(),
+    "runtime.inspect": (command) => runtimeInspect(command),
+    "runtime.search": (command) => runtimeSearch(command),
+    "talent.points.info": (command) => talentPointsInfo(command),
+    "talent.points.set": (command) => adjustTalentPoints(command, "set"),
+    "talent.points.add": (command) => adjustTalentPoints(command, "add"),
+    "title.info": () => ({ entries: localTitleEntries(), progress: progressSummary() }),
+    "title.unlock": (command) => unlockTitleIds(commandIds(command)),
+    "title.unlockAll": () => unlockTitleIds(localTitleIds(true)),
+    "costume.info": () => ({ entries: localCostumeEntries(), progress: progressSummary() }),
+    "costume.unlock": (command) => unlockCostumeIds(commandIds(command)),
+    "costume.unlockAll": () => unlockCostumeIds(localCostumeEntries().map(entry => entry.id), { all: true }),
+    "baby.info": () => babySummary(),
+    "baby.skill.learn": (command) => learnBabySkill(command),
+    "baby.skill.forget": (command) => forgetBabySkill(command),
+    "baby.skill.clear": (command) => clearBabySkills(command),
+    "baby.slots.set": (command) => setBabyLearnSlots(command, "set"),
+    "baby.slots.add": (command) => setBabyLearnSlots(command, "add"),
+    "trainer.options.get": () => ({ options: { ...bridge.options }, hooks: patchTrainerHooks() }),
+    "trainer.hooks.info": () => ({
+      options: { ...bridge.options },
+      hooks: patchTrainerHooks(),
+      hookTargets: bridge.hookTargets.slice(),
+      rateStats: { ...bridge.rateStats },
+      battleStats: { ...bridge.battleStats }
+    }),
+    "trainer.options.set": (command) => ({ options: setTrainerOptions(command.options || command) }),
+    "map.current": () => currentMapInfo(),
+    "map.transfer": (command) => {
       const player = resolvePlayer();
       if (!player) throw new Error("game player is unavailable");
       const mapId = Math.floor(requireNumber(command.mapId, "mapId"));
@@ -3526,14 +3545,10 @@
       }
       refreshMapAndWindows();
       return { mapId, x, y, direction, fade };
-    }
-    if (type === "map.through.set") {
-      return setPlayerThrough(command, false);
-    }
-    if (type === "map.through.toggle") {
-      return setPlayerThrough(command, true);
-    }
-    if (type === "commonEvent.run") {
+    },
+    "map.through.set": (command) => setPlayerThrough(command, false),
+    "map.through.toggle": (command) => setPlayerThrough(command, true),
+    "commonEvent.run": (command) => {
       const id = Math.floor(requireNumber(command.id, "id"));
       const events = commonEventTable();
       const eventData = events && events[id];
@@ -3544,16 +3559,16 @@
       const map = resolveMap();
       if (map && typeof map.requestRefresh === "function") map.requestRefresh();
       return { id, name: eventData && eventData.name || "" };
-    }
-    if (type === "gold.add") {
+    },
+    "gold.add": (command) => {
       const party = resolveParty();
       if (!party) throw new Error("game party is unavailable");
       const amount = requireNumber(command.amount, "amount");
       if (typeof party.gainGold === "function") withRatesSuppressed(() => party.gainGold(amount));
       else party._gold = Math.max(0, Number(party._gold || 0) + amount);
       return { gold: safeGold(party) };
-    }
-    if (type === "gold.set") {
+    },
+    "gold.set": (command) => {
       const party = resolveParty();
       if (!party) throw new Error("game party is unavailable");
       const value = Math.max(0, Math.floor(requireNumber(command.value, "value")));
@@ -3561,8 +3576,8 @@
       if (typeof party.gainGold === "function") withRatesSuppressed(() => party.gainGold(value - current));
       else party._gold = value;
       return { gold: safeGold(party) };
-    }
-    if (type === "variable.set") {
+    },
+    "variable.set": (command) => {
       const variables = resolveVariables();
       if (!variables || typeof variables.setValue !== "function") throw new Error("game variables are unavailable");
       const id = Math.floor(requireNumber(command.id, "id"));
@@ -3571,8 +3586,8 @@
       if (maxVariableId > 0 && id > maxVariableId) throw new Error(`variable id ${id} exceeds system limit ${maxVariableId}`);
       variables.setValue(id, command.value);
       return { id: command.id, value: command.value };
-    }
-    if (type === "switch.set") {
+    },
+    "switch.set": (command) => {
       const switches = resolveSwitches();
       if (!switches || typeof switches.setValue !== "function") throw new Error("game switches are unavailable");
       const id = Math.floor(requireNumber(command.id, "id"));
@@ -3581,8 +3596,8 @@
       if (maxSwitchId > 0 && id > maxSwitchId) throw new Error(`switch id ${id} exceeds system limit ${maxSwitchId}`);
       switches.setValue(id, !!command.value);
       return { id: command.id, value: !!command.value };
-    }
-    if (type === "item.add") {
+    },
+    "item.add": (command) => {
       const party = resolveParty();
       if (!party || typeof party.gainItem !== "function") throw new Error("party gainItem is unavailable");
       const kind = normalizeDropKind(command.kind || "item");
@@ -3595,29 +3610,15 @@
       if (!Number.isFinite(amount) || amount === 0) throw new Error("amount must be a non-zero number");
       party.gainItem(item, amount);
       return { kind, id: command.id, amount: command.amount };
-    }
-    if (type === "battle.killEnemies") {
-      return killBattleEnemies(command);
-    }
-    if (type === "battle.escape") {
-      return escapeBattle();
-    }
-    if (type === "battle.start") {
-      return startSpecifiedBattle(command);
-    }
-    if (type === "hangup.info") {
-      return hangupSummary();
-    }
-    if (type === "hangup.start") {
-      return callHangupMethod("startHangUp", "hangupStart");
-    }
-    if (type === "hangup.stop") {
-      return callHangupMethod("stopHangUp", "hangupStop");
-    }
-    if (type === "hangup.refresh") {
-      return callHangupMethod("refrishHangUp", "hangupRefresh");
-    }
-    if (type === "offlineHunt.info") {
+    },
+    "battle.killEnemies": (command) => killBattleEnemies(command),
+    "battle.escape": () => escapeBattle(),
+    "battle.start": (command) => startSpecifiedBattle(command),
+    "hangup.info": () => hangupSummary(),
+    "hangup.start": () => callHangupMethod("startHangUp", "hangupStart"),
+    "hangup.stop": () => callHangupMethod("stopHangUp", "hangupStop"),
+    "hangup.refresh": () => callHangupMethod("refrishHangUp", "hangupRefresh"),
+    "offlineHunt.info": (command) => {
       let preview = null;
       if (command.mapId != null && command.mapId !== "") {
         preview = offlineHuntPreview(command);
@@ -3630,42 +3631,46 @@
         stats: offlineHuntSummary(),
         preview
       };
-    }
-    if (type === "offlineHunt.preview") {
+    },
+    "offlineHunt.preview": (command) => {
       const preview = offlineHuntPreview(command);
       bridge.offlineHuntStats.preview = { ts: Date.now(), ...preview };
       return preview;
-    }
-    if (type === "offlineHunt.run") {
-      return runOfflineHunt(command);
-    }
-    if (type === "party.recover") {
-      return recoverPartyMembers();
-    }
-    if (type === "actor.add" || type === "actor.unlock") {
+    },
+    "offlineHunt.run": (command) => runOfflineHunt(command),
+    "party.recover": () => recoverPartyMembers(),
+    "actor.add": (command) => {
       const party = resolveParty();
       if (!party || typeof party.addActor !== "function") throw new Error("party addActor is unavailable");
       const { id } = requireDataEntry("actor", command.id, "actor id");
       party.addActor(id);
       refreshMapAndWindows();
       return { unlocked: true, actor: actorInfo(resolveActor(id)) };
-    }
-    if (type === "actor.remove") {
+    },
+    "actor.unlock": (command) => {
+      const party = resolveParty();
+      if (!party || typeof party.addActor !== "function") throw new Error("party addActor is unavailable");
+      const { id } = requireDataEntry("actor", command.id, "actor id");
+      party.addActor(id);
+      refreshMapAndWindows();
+      return { unlocked: true, actor: actorInfo(resolveActor(id)) };
+    },
+    "actor.remove": (command) => {
       const party = resolveParty();
       if (!party || typeof party.removeActor !== "function") throw new Error("party removeActor is unavailable");
       const id = Math.floor(requireNumber(command.id, "id"));
       party.removeActor(id);
       refreshMapAndWindows();
       return { id };
-    }
-    if (type === "actor.recover") {
+    },
+    "actor.recover": (command) => {
       const actor = requireActor(command.id);
       if (typeof actor.recoverAll === "function") actor.recoverAll();
       refreshActor(actor);
       refreshMapAndWindows();
       return { actor: actorInfo(actor) };
-    }
-    if (type === "actor.level.set") {
+    },
+    "actor.level.set": (command) => {
       const actor = requireActor(command.id);
       let maxLevel = 999;
       try {
@@ -3677,8 +3682,8 @@
       refreshActor(actor);
       refreshMapAndWindows();
       return { actor: actorInfo(actor) };
-    }
-    if (type === "actor.exp.add") {
+    },
+    "actor.exp.add": (command) => {
       const actor = requireActor(command.id);
       const amount = Math.floor(requireNumber(command.amount, "amount"));
       if (typeof actor.gainExp === "function") withRatesSuppressed(() => actor.gainExp(amount));
@@ -3691,8 +3696,8 @@
       refreshActor(actor);
       refreshMapAndWindows();
       return { actor: actorInfo(actor), amount };
-    }
-    if (type === "actor.vitals.set") {
+    },
+    "actor.vitals.set": (command) => {
       const actor = requireActor(command.id);
       if (command.hp !== undefined && command.hp !== "") {
         const hp = clampCurrentValue(command.hp, actor.mhp, 999999999);
@@ -3714,8 +3719,8 @@
       refreshActor(actor);
       refreshMapAndWindows();
       return { actor: actorInfo(actor) };
-    }
-    if (type === "actor.param.add") {
+    },
+    "actor.param.add": (command) => {
       const actor = requireActor(command.id);
       const paramId = Math.floor(requireNumber(command.paramId, "paramId"));
       if (paramId < 0 || paramId > 7) throw new Error("paramId must be between 0 and 7");
@@ -3728,8 +3733,8 @@
       refreshActor(actor);
       refreshMapAndWindows();
       return { actor: actorInfo(actor), paramId, value };
-    }
-    if (type === "actor.name.set") {
+    },
+    "actor.name.set": (command) => {
       const actor = requireActor(command.id);
       const name = String(command.name || "");
       if (typeof actor.setName === "function") actor.setName(name);
@@ -3737,8 +3742,8 @@
       refreshActor(actor);
       refreshMapAndWindows();
       return { actor: actorInfo(actor) };
-    }
-    if (type === "actor.skill.learn") {
+    },
+    "actor.skill.learn": (command) => {
       const actor = requireActor(command.id);
       const { id: skillId } = requireDataEntry("skill", command.skillId, "skillId");
       if (typeof actor.learnSkill !== "function") throw new Error("actor learnSkill is unavailable");
@@ -3746,8 +3751,8 @@
       refreshActor(actor);
       refreshMapAndWindows();
       return { actor: actorInfo(actor), skillId };
-    }
-    if (type === "actor.skill.forget") {
+    },
+    "actor.skill.forget": (command) => {
       const actor = requireActor(command.id);
       const { id: skillId } = requireDataEntry("skill", command.skillId, "skillId");
       if (typeof actor.forgetSkill !== "function") throw new Error("actor forgetSkill is unavailable");
@@ -3755,17 +3760,18 @@
       refreshActor(actor);
       refreshMapAndWindows();
       return { actor: actorInfo(actor), skillId };
-    }
-    if (type === "progress.enemyBook.unlock") {
-      return unlockEnemyBook(commandIds(command));
-    }
-    if (type === "save") {
-      return saveGameToSlot(command.id || 1);
-    }
-    if (type === "title.refresh") {
-      return { refreshed: refreshTitleContinueCommand() };
-    }
-    throw new Error(`unknown command type: ${type}`);
+    },
+    "progress.enemyBook.unlock": (command) => unlockEnemyBook(commandIds(command)),
+    "save": (command) => saveGameToSlot(command.id || 1),
+    "title.refresh": () => ({ refreshed: refreshTitleContinueCommand() })
+  });
+
+  function execute(command) {
+    if (!command || typeof command !== "object") throw new Error("invalid command");
+    const type = String(command.type || "");
+    const handler = commandHandlers[type];
+    if (!handler) throw new Error(`unknown command type: ${type}`);
+    return handler(command);
   }
 
   function pollCommands() {

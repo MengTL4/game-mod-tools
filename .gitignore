@@ -61,8 +61,13 @@ runtime/save-harness/swiftshader/
 *.log
 npm-debug.log*
 
+# Local archives
+*.zip
+
 # Local Codex workspace cache
 .codex/
+.agents/
+.superpowers/
 
 # Per-user local configuration
 config.local.json
