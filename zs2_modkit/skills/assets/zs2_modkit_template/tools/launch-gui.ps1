@@ -75,8 +75,8 @@ function Test-GuiDataExtractReady {
 function Invoke-DataExtractIfNeeded {
   if (Test-GuiDataExtractReady) { return }
   Write-Host "Extracted data not found or stale. Extracting www/data.pak for GUI lists..."
-  & node (Join-Path $PSScriptRoot "extract-data-pak.mjs")
-  if ($LASTEXITCODE -ne 0) { throw "extract-data-pak.mjs failed with exit code $LASTEXITCODE" }
+  & npx tsx (Join-Path $PSScriptRoot "extract-data-pak.ts")
+  if ($LASTEXITCODE -ne 0) { throw "extract-data-pak.ts failed with exit code $LASTEXITCODE" }
 }
 
 function Test-GuiUseDataExtractReady {
@@ -103,8 +103,8 @@ function Test-GuiUseDataExtractReady {
 function Invoke-UseDataExtractIfNeeded {
   if (Test-GuiUseDataExtractReady) { return }
   Write-Host "Extracted useData not found or stale. Extracting www/useData for GUI title lists..."
-  & node (Join-Path $PSScriptRoot "extract-usedata.mjs")
-  if ($LASTEXITCODE -ne 0) { throw "extract-usedata.mjs failed with exit code $LASTEXITCODE" }
+  & npx tsx (Join-Path $PSScriptRoot "extract-usedata.ts")
+  if ($LASTEXITCODE -ne 0) { throw "extract-usedata.ts failed with exit code $LASTEXITCODE" }
 }
 
 function Get-GuiSourceFiles {
@@ -165,8 +165,8 @@ function Invoke-BridgeBuildIfNeeded {
   }
   if (-not $needsBuild) { return }
 
-  & node (Join-Path $PSScriptRoot "build-bridge.mjs")
-  if ($LASTEXITCODE -ne 0) { throw "build-bridge.mjs failed with exit code $LASTEXITCODE" }
+  & npx tsx (Join-Path $PSScriptRoot "build-bridge.ts")
+  if ($LASTEXITCODE -ne 0) { throw "build-bridge.ts failed with exit code $LASTEXITCODE" }
 }
 
 Invoke-DataExtractIfNeeded

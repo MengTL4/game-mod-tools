@@ -5,6 +5,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$TsxCommand = Join-Path $PSScriptRoot "node_modules\.bin\tsx.cmd"
+if (-not (Test-Path -LiteralPath $TsxCommand)) {
+  $TsxCommand = (Get-Command tsx -ErrorAction Stop).Source
+}
+
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 . (Join-Path $PSScriptRoot "modkit-config.ps1")
 $GameRoot = Resolve-Dq2GameRoot -ProjectRoot $ProjectRoot -GameRoot $GameRoot
@@ -61,12 +66,12 @@ function Invoke-DataExtractIfNeeded {
   if (Test-GuiDataExtractReady) { return }
   if (Test-Path -LiteralPath $DataPak) {
     Write-Host "Extracted data not found or stale. Extracting www/data.pak for GUI lists..."
-    & node (Join-Path $PSScriptRoot "extract-data-pak.mjs")
-    if ($LASTEXITCODE -ne 0) { throw "extract-data-pak.mjs failed with exit code $LASTEXITCODE" }
+    & $TsxCommand (Join-Path $PSScriptRoot "extract-data-pak.ts")
+    if ($LASTEXITCODE -ne 0) { throw "extract-data-pak.ts failed with exit code $LASTEXITCODE" }
   } else {
     Write-Host "Extracted data not found or stale. Decrypting www/data/*.json for GUI lists..."
-    & node (Join-Path $PSScriptRoot "extract-data.mjs") --game-root $GameRoot
-    if ($LASTEXITCODE -ne 0) { throw "extract-data.mjs failed with exit code $LASTEXITCODE" }
+    & $TsxCommand (Join-Path $PSScriptRoot "extract-data.ts") --game-root $GameRoot
+    if ($LASTEXITCODE -ne 0) { throw "extract-data.ts failed with exit code $LASTEXITCODE" }
   }
 }
 

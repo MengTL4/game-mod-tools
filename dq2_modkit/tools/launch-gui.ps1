@@ -49,8 +49,13 @@ function Test-GuiDataExtractReady {
 function Invoke-DataExtractIfNeeded {
   if (Test-GuiDataExtractReady) { return }
   Write-Host "Extracted data not found or stale. Extracting www/data.pak for GUI lists..."
-  & node (Join-Path $PSScriptRoot "extract-data-pak.mjs")
-  if ($LASTEXITCODE -ne 0) { throw "extract-data-pak.mjs failed with exit code $LASTEXITCODE" }
+  Push-Location $PSScriptRoot
+  try {
+    & npx tsx "extract-data-pak.ts"
+    if ($LASTEXITCODE -ne 0) { throw "extract-data-pak.ts failed with exit code $LASTEXITCODE" }
+  } finally {
+    Pop-Location
+  }
 }
 
 function Test-GuiCacheReady {
@@ -79,8 +84,13 @@ function Test-GuiCacheReady {
 function Invoke-GuiCacheIfNeeded {
   if (Test-GuiCacheReady) { return }
   Write-Host "Building GUI cache for map/troop lists..."
-  & node (Join-Path $PSScriptRoot "build-gui-cache.mjs")
-  if ($LASTEXITCODE -ne 0) { throw "build-gui-cache.mjs failed with exit code $LASTEXITCODE" }
+  Push-Location $PSScriptRoot
+  try {
+    & npx tsx "build-gui-cache.ts"
+    if ($LASTEXITCODE -ne 0) { throw "build-gui-cache.ts failed with exit code $LASTEXITCODE" }
+  } finally {
+    Pop-Location
+  }
 }
 
 function Invoke-GuiBuildIfNeeded {

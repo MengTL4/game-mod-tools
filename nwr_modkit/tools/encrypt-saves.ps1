@@ -7,6 +7,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$TsxCommand = Join-Path $PSScriptRoot "node_modules\.bin\tsx.cmd"
+if (-not (Test-Path -LiteralPath $TsxCommand)) {
+  $TsxCommand = (Get-Command tsx -ErrorAction Stop).Source
+}
+
 $ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 if (-not $InputDir) {
   $InputDir = Join-Path $ProjectRoot "output\extract\save"
@@ -16,7 +21,7 @@ if (-not $OutputDir) {
 }
 
 $ArgsList = @(
-  (Join-Path $PSScriptRoot "encrypt-saves.mjs"),
+  (Join-Path $PSScriptRoot "encrypt-saves.ts"),
   "--input", $InputDir,
   "--output", $OutputDir,
   "--ids", ($Ids -join ",")
@@ -26,10 +31,10 @@ if ($NoConfig) {
   $ArgsList += "--no-config"
 }
 
-& node @ArgsList
+& $TsxCommand @ArgsList
 
 if ($LASTEXITCODE -ne 0) {
-  throw "encrypt-saves.mjs failed with exit code $LASTEXITCODE"
+  throw "encrypt-saves.ts failed with exit code $LASTEXITCODE"
 }
 
 Get-ChildItem -LiteralPath $OutputDir | Select-Object Name, Length

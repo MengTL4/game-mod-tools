@@ -1,5 +1,19 @@
 import { type ReactNode, type UIEvent, useEffect, useMemo, useState } from "react";
 import { decodeSaveText, encodeSaveText, type SaveTextParts } from "./codec";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  Select,
+  Separator,
+  Switch,
+  Textarea,
+} from "@game-mod-tools/ui";
 
 type InventoryKind = "items" | "weapons" | "armors";
 type CatalogKind = InventoryKind | "actors" | "skills";
@@ -305,7 +319,7 @@ function renderFuzzyName(text: string, query: string): ReactNode {
   const set = new Set(indexes);
   return source.split("").map((char, index) =>
     set.has(index) ? (
-      <mark key={`m-${index}`} className="hl">
+      <mark key={`m-${index}`} className="rounded bg-yellow-200 px-0.5 text-amber-900">
         {char}
       </mark>
     ) : (
@@ -1320,258 +1334,324 @@ function App() {
   };
 
   return (
-    <div className="app">
-      <header className="header hero">
-        <div>
-          <h1>RPG 存档库存/角色修改器</h1>
-          <p>
-            一站式处理 <code>party._items</code>/<code>_weapons</code>/<code>_armors</code>、
-            <code>party._actors.@a</code> 与 <code>actors._data.@a</code>，支持库存、角色属性、经验和技能编辑。
-          </p>
-        </div>
-        <div className="hero-metrics">
-          <div className="metric-card">
-            <span>数据库加载进度</span>
-            <strong>{loadedDbKinds}/5</strong>
+    <div className="mx-auto grid max-w-[1500px] gap-4 p-4">
+      <Card>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-2">
+            <CardTitle className="text-2xl font-semibold">RPG 存档库存/角色修改器</CardTitle>
+            <CardDescription>
+              一站式处理 <code>party._items</code>/<code>_weapons</code>/<code>_armors</code>、
+              <code>party._actors.@a</code> 与 <code>actors._data.@a</code>，支持库存、角色属性、经验和技能编辑。
+            </CardDescription>
           </div>
-          <div className="metric-card">
-            <span>当前输出文件</span>
-            <strong>{outputName}</strong>
+          <div className="grid min-w-[260px] gap-2 sm:grid-cols-2">
+            <Card>
+              <CardHeader className="space-y-1 p-4">
+                <CardDescription className="text-xs">数据库加载进度</CardDescription>
+                <CardTitle className="text-base">{loadedDbKinds}/5</CardTitle>
+              </CardHeader>
+            </Card>
+            <Card>
+              <CardHeader className="space-y-1 p-4">
+                <CardDescription className="text-xs">当前输出文件</CardDescription>
+                <CardTitle className="break-words text-base">{outputName}</CardTitle>
+              </CardHeader>
+            </Card>
           </div>
-        </div>
-      </header>
+        </CardHeader>
+      </Card>
 
-      <div className="workspace">
-      <section className="panel controls workspace-controls">
-        <div className="row wrap loader-row">
-          <label className="file-btn">
-            加载存档(.rpgsave)
-            <input type="file" accept=".rpgsave,.txt" onChange={handleLoadSave} />
-          </label>
-          <button className="primary" onClick={buildSaveOutput}>
-            生成存档输出
-          </button>
-          <button className="primary" onClick={downloadSave}>
-            下载存档
-          </button>
-        </div>
-
-        <div className="stats-grid">
-          {dbStatCards.map((card) => (
-            <div key={`stat-${card.kind}`} className="badge">
-              <span>{card.kind}</span>
-              <strong>{card.count.toLocaleString()}</strong>
-            </div>
-          ))}
-        </div>
-
-        <div className="row wrap gap-lg action-row">
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={preserveAffix}
-              onChange={(event) => setPreserveAffix(event.target.checked)}
-            />
-            保留原存档前后缀
-          </label>
-          <div className="meta">已记录撤销快照 {undoStack.length} 步</div>
-        </div>
-
-        <div className="status" role="status" aria-live="polite">
-          {status}
-        </div>
-        {error && <div className="error">{error}</div>}
-      </section>
-
-      <div className="workspace-column workspace-column-left">
-
-      <section className="panel workspace-catalog">
-        <div className="row wrap catalog-toolbar">
-          <div className="tabs">
-            {CATALOG_TABS.map((tab) => (
-              <button
-                key={`tab-${tab.kind}`}
-                className={activeKind === tab.kind ? "active" : ""}
-                onClick={() => setActiveKind(tab.kind)}
-              >
-                {tab.label}
-                <span className="tab-count">{db[tab.kind].length.toLocaleString()}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="catalog-tools">
-            <input
-              className="search"
-              value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
-              placeholder="搜索 id / 名称 / description"
-            />
-            <button onClick={() => setSearchText("")}>清空搜索</button>
-          </div>
-
-          {activeKind !== "actors" && (
-            <label className="field">
-              {categoryLabel(activeKind)}
-              <select
-                value={currentCategory}
-                onChange={(event) =>
-                  setCategoryFilter((prev) => ({ ...prev, [activeKind]: event.target.value }))
-                }
-              >
-                <option value="all">全部</option>
-                {categoryValues.map((value) => (
-                  <option key={value} value={String(value)}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          {activeKind !== "actors" && activeKind !== "skills" && (
-            <label className="field">
-              添加数量
+      <Card>
+        <CardContent className="space-y-4 pt-6">
+          <div className="grid gap-2 sm:grid-cols-3">
+            <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+              加载存档(.rpgsave)
               <input
-                type="number"
-                min={1}
-                value={qtyToAdd}
-                onChange={(event) =>
-                  setQtyToAdd(Math.max(1, Math.trunc(Number(event.target.value) || 1)))
-                }
+                type="file"
+                className="sr-only"
+                accept=".rpgsave,.txt"
+                onChange={handleLoadSave}
               />
             </label>
-          )}
-
-          <button className="batch-action" onClick={batchAddFilteredToSave} disabled={filteredCatalog.length === 0}>
-            {activeKind === "skills"
-              ? "批量加到当前角色"
-              : activeKind === "actors"
-                ? "批量添加筛选角色"
-                : "批量添加筛选结果"}
-          </button>
-
-          <div className="meta">结果：{filteredCatalog.length.toLocaleString()} / {currentCatalog.length.toLocaleString()}，已渲染 {visibleCatalogRows.length.toLocaleString()}</div>
-        </div>
-
-        <div className="table-wrap" onScroll={handleCatalogScroll}>
-          <table>
-            <thead>
-              <tr>
-                <th>id</th>
-                <th>名称</th>
-                {activeKind !== "actors" && <th>description</th>}
-                {activeKind !== "actors" && <th>{categoryLabel(activeKind)}</th>}
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleCatalogRows.map((entry) => (
-                <tr key={`${activeKind}-${entry.id}`}>
-                  <td>{entry.id}</td>
-                  <td>{renderFuzzyName(entry.name, searchText)}</td>
-                  {activeKind !== "actors" && <td className="desc">{entry.description || ""}</td>}
-                  {activeKind !== "actors" && <td>{entryCategory(entry, activeKind) ?? "-"}</td>}
-                  <td>
-                    <button onClick={() => addToSave(activeKind, entry)}>
-                      {activeKind === "skills" ? "加到当前角色" : "添加"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {hiddenCatalogCount > 0 && (
-          <div className="table-footer">
-            <span>还有 {hiddenCatalogCount.toLocaleString()} 条未渲染，滚动到底部会自动加载。</span>
-            <button onClick={loadMoreCatalogRows}>
-              再加载 {Math.min(CATALOG_RENDER_BATCH, hiddenCatalogCount).toLocaleString()} 条
-            </button>
+            <Button onClick={buildSaveOutput}>生成存档输出</Button>
+            <Button onClick={downloadSave}>下载存档</Button>
           </div>
-        )}
-      </section>
 
-      </div>
-
-      <div className="workspace-column workspace-column-right">
-
-      <section className="panel split-4 workspace-inventory">
-        {INVENTORY_PANELS.map((panel) => (
-          <InventoryView
-            key={`inv-${panel.kind}`}
-            title={panel.title}
-            kind={panel.kind}
-            data={existingInventoryByKind[panel.kind]}
-            onAdjust={adjustInventoryQuantity}
-            onClear={clearInventoryQuantity}
-          />
-        ))}
-        <ActorView
-          title="当前存档角色(_actors.@a)"
-          data={existingActors}
-          onRemove={removeActorFromSave}
-        />
-      </section>
-
-      <section className="panel workspace-actor">
-        <h2>角色编辑（actors._data.@a）</h2>
-        <div className="meta">
-          可编辑角色 {actorDataRows.rows.length} / 解析条目 {actorDataRows.totalEntries}，跳过非法条目{" "}
-          {actorDataRows.skippedInvalidEntry}，跳过未知角色ID {actorDataRows.skippedUnknownActorId}，
-          跳过未知技能ID {actorDataRows.skippedUnknownSkillId}
-        </div>
-        <div className="actor-picker">
-          <input
-            className="actor-picker-search"
-            value={actorEditSearch}
-            onChange={(event) => setActorEditSearch(event.target.value)}
-            placeholder="筛选角色（ID / 名称）"
-          />
-          <select
-            className="actor-picker-select"
-            value={selectedActorRow ? String(selectedActorRow.index) : ""}
-            onChange={(event) => {
-              const next = toIntOrNull(event.target.value);
-              setSelectedActorEditIndex(next);
-            }}
-          >
-            {filteredActorEditRows.map((row) => (
-              <option key={`actor-select-${row.index}-${row.actorId}`} value={String(row.index)}>
-                {`#${row.actorId} ${row.name || "(无名)"}`}
-              </option>
+          <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            {dbStatCards.map((card) => (
+              <Card key={`stat-${card.kind}`}>
+                <CardHeader className="space-y-1 p-4">
+                  <CardDescription className="text-xs uppercase">{card.kind}</CardDescription>
+                  <CardTitle className="text-lg">{card.count.toLocaleString()}</CardTitle>
+                </CardHeader>
+              </Card>
             ))}
-          </select>
-          <div className="meta">
-            共 {actorDataRows.rows.length} 位，筛选后 {filteredActorEditRows.length} 位；当前仅编辑 1 位角色
           </div>
+
+          <div className="flex flex-wrap items-center gap-4 border-t pt-4">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="preserve-affix"
+                checked={preserveAffix}
+                onChange={(event) => setPreserveAffix(event.target.checked)}
+              />
+              <Label htmlFor="preserve-affix">保留原存档前后缀</Label>
+            </div>
+            <span className="text-sm text-muted-foreground">已记录撤销快照 {undoStack.length} 步</span>
+          </div>
+
+          <div
+            className="rounded-md border-l-4 border-primary bg-primary/10 p-3 text-sm text-primary"
+            role="status"
+            aria-live="polite"
+          >
+            {status}
+          </div>
+          {error && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 lg:grid-cols-[1.35fr_minmax(420px,1fr)]">
+        <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>目录</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-start gap-2">
+                {CATALOG_TABS.map((tab) => (
+                  <Button
+                    key={`tab-${tab.kind}`}
+                    variant={activeKind === tab.kind ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setActiveKind(tab.kind)}
+                  >
+                    {tab.label}
+                    <span className="ml-1 inline-flex items-center rounded-full border px-2 py-0.5 text-xs">
+                      {db[tab.kind].length.toLocaleString()}
+                    </span>
+                  </Button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  className="max-w-sm"
+                  value={searchText}
+                  onChange={(event) => setSearchText(event.target.value)}
+                  placeholder="搜索 id / 名称 / description"
+                />
+                <Button variant="outline" size="sm" onClick={() => setSearchText("")}>
+                  清空搜索
+                </Button>
+              </div>
+
+              {activeKind !== "actors" && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Label>{categoryLabel(activeKind)}</Label>
+                  <Select
+                    className="w-40"
+                    value={currentCategory}
+                    onChange={(event) =>
+                      setCategoryFilter((prev) => ({ ...prev, [activeKind]: event.target.value }))
+                    }
+                  >
+                    <option value="all">全部</option>
+                    {categoryValues.map((value) => (
+                      <option key={value} value={String(value)}>
+                        {value}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+
+              {activeKind !== "actors" && activeKind !== "skills" && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Label>添加数量</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    className="w-32"
+                    value={qtyToAdd}
+                    onChange={(event) =>
+                      setQtyToAdd(Math.max(1, Math.trunc(Number(event.target.value) || 1)))
+                    }
+                  />
+                </div>
+              )}
+
+              <Button onClick={batchAddFilteredToSave} disabled={filteredCatalog.length === 0}>
+                {activeKind === "skills"
+                  ? "批量加到当前角色"
+                  : activeKind === "actors"
+                    ? "批量添加筛选角色"
+                    : "批量添加筛选结果"}
+              </Button>
+
+              <div className="text-sm text-muted-foreground">
+                结果：{filteredCatalog.length.toLocaleString()} /{" "}
+                {currentCatalog.length.toLocaleString()}，已渲染{" "}
+                {visibleCatalogRows.length.toLocaleString()}
+              </div>
+
+              <div
+                className="max-h-[560px] overflow-auto rounded-md border"
+                onScroll={handleCatalogScroll}
+              >
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
+                        id
+                      </th>
+                      <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
+                        名称
+                      </th>
+                      {activeKind !== "actors" && (
+                        <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
+                          description
+                        </th>
+                      )}
+                      {activeKind !== "actors" && (
+                        <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
+                          {categoryLabel(activeKind)}
+                        </th>
+                      )}
+                      <th className="sticky top-0 z-10 bg-muted px-3 py-2 text-left font-medium">
+                        操作
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleCatalogRows.map((entry) => (
+                      <tr key={`${activeKind}-${entry.id}`} className="border-b last:border-b-0">
+                        <td className="px-3 py-2">{entry.id}</td>
+                        <td className="px-3 py-2">{renderFuzzyName(entry.name, searchText)}</td>
+                        {activeKind !== "actors" && (
+                          <td className="max-w-xl px-3 py-2 text-muted-foreground">
+                            {entry.description || ""}
+                          </td>
+                        )}
+                        {activeKind !== "actors" && (
+                          <td className="px-3 py-2">
+                            {entryCategory(entry, activeKind) ?? "-"}
+                          </td>
+                        )}
+                        <td className="px-3 py-2">
+                          <Button size="sm" onClick={() => addToSave(activeKind, entry)}>
+                            {activeKind === "skills" ? "加到当前角色" : "添加"}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {hiddenCatalogCount > 0 && (
+                <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                  <span>还有 {hiddenCatalogCount.toLocaleString()} 条未渲染，滚动到底部会自动加载。</span>
+                  <Button variant="outline" size="sm" onClick={loadMoreCatalogRows}>
+                    再加载 {Math.min(CATALOG_RENDER_BATCH, hiddenCatalogCount).toLocaleString()} 条
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
-        {selectedActorRow ? (
-          <div className="actor-data-grid">
-            <ActorDataEditor
-              key={`actor-data-${selectedActorRow.index}-${selectedActorRow.actorId}`}
-              row={selectedActorRow}
-              skillMap={dbMap.skills}
-              onStatChange={(field, value) => updateActorNumericField(selectedActorRow.index, field, value)}
-              onRemoveSkill={(skillId) => removeSkillFromActor(selectedActorRow.index, skillId)}
-              onSetExp={(expValue) => setActorExpValue(selectedActorRow.index, expValue)}
-            />
-          </div>
-        ) : (
-          <div className="meta">当前存档没有可编辑角色数据。</div>
-        )}
-      </section>
 
-      <section className="panel workspace-output">
-        <h2>输出预览（可复制）</h2>
-        <textarea
-          value={saveOutput}
-          onChange={(event) => setSaveOutput(event.target.value)}
-          placeholder="点击“生成存档输出”后，这里会显示新的 .rpgsave 文本。"
-        />
-      </section>
+        <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>当前存档内容</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              {INVENTORY_PANELS.map((panel) => (
+                <InventoryView
+                  key={`inv-${panel.kind}`}
+                  title={panel.title}
+                  kind={panel.kind}
+                  data={existingInventoryByKind[panel.kind]}
+                  onAdjust={adjustInventoryQuantity}
+                  onClear={clearInventoryQuantity}
+                />
+              ))}
+              <ActorView
+                title="当前存档角色(_actors.@a)"
+                data={existingActors}
+                onRemove={removeActorFromSave}
+              />
+            </CardContent>
+          </Card>
 
-      </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>角色编辑（actors._data.@a）</CardTitle>
+              <CardDescription>
+                可编辑角色 {actorDataRows.rows.length} / 解析条目 {actorDataRows.totalEntries}，跳过非法条目{" "}
+                {actorDataRows.skippedInvalidEntry}，跳过未知角色ID {actorDataRows.skippedUnknownActorId}，
+                跳过未知技能ID {actorDataRows.skippedUnknownSkillId}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Input
+                  value={actorEditSearch}
+                  onChange={(event) => setActorEditSearch(event.target.value)}
+                  placeholder="筛选角色（ID / 名称）"
+                />
+                <Select
+                  value={selectedActorRow ? String(selectedActorRow.index) : ""}
+                  onChange={(event) => {
+                    const next = toIntOrNull(event.target.value);
+                    setSelectedActorEditIndex(next);
+                  }}
+                >
+                  {filteredActorEditRows.map((row) => (
+                    <option key={`actor-select-${row.index}-${row.actorId}`} value={String(row.index)}>
+                      {`#${row.actorId} ${row.name || "(无名)"}`}
+                    </option>
+                  ))}
+                </Select>
+                <div className="text-sm text-muted-foreground">
+                  共 {actorDataRows.rows.length} 位，筛选后 {filteredActorEditRows.length} 位；当前仅编辑 1 位角色
+                </div>
+              </div>
+              {selectedActorRow ? (
+                <ActorDataEditor
+                  key={`actor-data-${selectedActorRow.index}-${selectedActorRow.actorId}`}
+                  row={selectedActorRow}
+                  skillMap={dbMap.skills}
+                  onStatChange={(field, value) =>
+                    updateActorNumericField(selectedActorRow.index, field, value)
+                  }
+                  onRemoveSkill={(skillId) => removeSkillFromActor(selectedActorRow.index, skillId)}
+                  onSetExp={(expValue) => setActorExpValue(selectedActorRow.index, expValue)}
+                />
+              ) : (
+                <div className="text-sm text-muted-foreground">当前存档没有可编辑角色数据。</div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>输出预览（可复制）</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={saveOutput}
+                onChange={(event) => setSaveOutput(event.target.value)}
+                placeholder="点击“生成存档输出”后，这里会显示新的 .rpgsave 文本。"
+              />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
@@ -1591,29 +1671,46 @@ function InventoryView({
   onClear: (kind: InventoryKind, id: number) => void;
 }) {
   return (
-    <div className="inventory-box">
-      <h3>{title}</h3>
-      <div className="meta">
-        有效条目 {data.rows.length} / 原始条目 {data.totalEntries}，跳过未知ID {data.skippedUnknownId}，
-        跳过非法条目 {data.skippedInvalidEntry}
-      </div>
-      <div className="inventory-list">
-        {data.rows.map((row) => (
-          <div key={`${title}-${row.id}`} className="inventory-row">
-            <span>#{row.id}</span>
-            <span>{row.name || "(无名)"}</span>
-            <span>x {row.quantity}</span>
-            <div className="inventory-actions">
-              <button onClick={() => onAdjust(kind, row.id, -10)}>-10</button>
-              <button onClick={() => onAdjust(kind, row.id, -1)}>-1</button>
-              <button onClick={() => onAdjust(kind, row.id, 1)}>+1</button>
-              <button onClick={() => onAdjust(kind, row.id, 10)}>+10</button>
-              <button onClick={() => onClear(kind, row.id)}>清零</button>
+    <Card>
+      <CardHeader className="p-4">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <CardDescription>
+          有效条目 {data.rows.length} / 原始条目 {data.totalEntries}，跳过未知ID {data.skippedUnknownId}，
+          跳过非法条目 {data.skippedInvalidEntry}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-4 pt-0">
+        <div className="max-h-[220px] space-y-2 overflow-auto border-t">
+          {data.rows.map((row) => (
+            <div
+              key={`${title}-${row.id}`}
+              className="grid grid-cols-4 items-center gap-2 border-b py-2 last:border-b-0"
+            >
+              <span className="text-sm">#{row.id}</span>
+              <span className="truncate text-sm">{row.name || "(无名)"}</span>
+              <span className="text-sm">x {row.quantity}</span>
+              <div className="flex flex-wrap justify-end gap-1">
+                <Button variant="outline" size="sm" onClick={() => onAdjust(kind, row.id, -10)}>
+                  -10
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => onAdjust(kind, row.id, -1)}>
+                  -1
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => onAdjust(kind, row.id, 1)}>
+                  +1
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => onAdjust(kind, row.id, 10)}>
+                  +10
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => onClear(kind, row.id)}>
+                  清零
+                </Button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1627,25 +1724,34 @@ function ActorView({
   onRemove: (id: number) => void;
 }) {
   return (
-    <div className="inventory-box">
-      <h3>{title}</h3>
-      <div className="meta">
-        有效条目 {data.rows.length} / 原始条目 {data.totalEntries}，跳过未知ID {data.skippedUnknownId}，
-        跳过非法条目 {data.skippedInvalidEntry}
-      </div>
-      <div className="inventory-list">
-        {data.rows.map((row) => (
-          <div key={`${title}-${row.id}`} className="inventory-row actor-row">
-            <span>#{row.id}</span>
-            <span>{row.name || "(无名)"}</span>
-            <span />
-            <div className="inventory-actions">
-              <button onClick={() => onRemove(row.id)}>移除</button>
+    <Card>
+      <CardHeader className="p-4">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <CardDescription>
+          有效条目 {data.rows.length} / 原始条目 {data.totalEntries}，跳过未知ID {data.skippedUnknownId}，
+          跳过非法条目 {data.skippedInvalidEntry}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-4 pt-0">
+        <div className="max-h-[220px] space-y-2 overflow-auto border-t">
+          {data.rows.map((row) => (
+            <div
+              key={`${title}-${row.id}`}
+              className="grid grid-cols-4 items-center gap-2 border-b py-2 last:border-b-0"
+            >
+              <span className="text-sm">#{row.id}</span>
+              <span className="truncate text-sm">{row.name || "(无名)"}</span>
+              <span className="text-sm" />
+              <div className="flex flex-wrap justify-end gap-1">
+                <Button variant="outline" size="sm" onClick={() => onRemove(row.id)}>
+                  移除
+                </Button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1663,75 +1769,90 @@ function ActorDataEditor({
   onSetExp: (expValue: number) => void;
 }) {
   return (
-    <div className="actor-card">
-      <h3>
-        #{row.actorId} {row.name || "(无名)"}
-      </h3>
-      <div className="actor-meta">数组索引: {row.index}</div>
-      <div className="actor-stats-grid">
-        <label>
-          _hp
-          <input
-            type="number"
-            min={0}
-            value={row.hp}
-            onChange={(event) => onStatChange("_hp", Number(event.target.value) || 0)}
-          />
-        </label>
-        <label>
-          _mp
-          <input
-            type="number"
-            min={0}
-            value={row.mp}
-            onChange={(event) => onStatChange("_mp", Number(event.target.value) || 0)}
-          />
-        </label>
-        <label>
-          _tp
-          <input
-            type="number"
-            min={0}
-            value={row.tp}
-            onChange={(event) => onStatChange("_tp", Number(event.target.value) || 0)}
-          />
-        </label>
-        <label>
-          _level
-          <input
-            type="number"
-            min={1}
-            value={row.level}
-            onChange={(event) => onStatChange("_level", Number(event.target.value) || 1)}
-          />
-        </label>
-        <label>
-          _exp
-          <input
-            type="number"
-            min={0}
-            value={row.exp}
-            onChange={(event) => onSetExp(Number(event.target.value) || 0)}
-          />
-        </label>
-      </div>
-
-      <div className="actor-skill-editor">
-        <div className="actor-skill-title">技能列表（_skills.@a）</div>
-        <div className="skill-list">
-          {row.skills.map((skillId, skillIndex) => (
-            <div key={`actor-${row.index}-skill-${skillId}-${skillIndex}`} className="skill-chip">
-              <span>
-                #{skillId} {skillMap.get(skillId)?.name || "(未知技能)"}
-              </span>
-              <button onClick={() => onRemoveSkill(skillId)}>删除</button>
-            </div>
-          ))}
-          {row.skills.length === 0 && <div className="meta">当前无技能</div>}
+    <Card>
+      <CardHeader className="p-4">
+        <CardTitle className="text-base">
+          #{row.actorId} {row.name || "(无名)"}
+        </CardTitle>
+        <CardDescription>数组索引: {row.index}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4 p-4 pt-0">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          <div className="space-y-1">
+            <Label className="text-xs">_hp</Label>
+            <Input
+              type="number"
+              min={0}
+              value={row.hp}
+              onChange={(event) => onStatChange("_hp", Number(event.target.value) || 0)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">_mp</Label>
+            <Input
+              type="number"
+              min={0}
+              value={row.mp}
+              onChange={(event) => onStatChange("_mp", Number(event.target.value) || 0)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">_tp</Label>
+            <Input
+              type="number"
+              min={0}
+              value={row.tp}
+              onChange={(event) => onStatChange("_tp", Number(event.target.value) || 0)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">_level</Label>
+            <Input
+              type="number"
+              min={1}
+              value={row.level}
+              onChange={(event) => onStatChange("_level", Number(event.target.value) || 1)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">_exp</Label>
+            <Input
+              type="number"
+              min={0}
+              value={row.exp}
+              onChange={(event) => onSetExp(Number(event.target.value) || 0)}
+            />
+          </div>
         </div>
-        <div className="meta">技能添加请在左侧切到“技能”标签后使用“加到当前角色”。</div>
-      </div>
-    </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-muted-foreground">技能列表（_skills.@a）</h4>
+          <div className="grid max-h-[190px] gap-2 overflow-auto">
+            {row.skills.map((skillId, skillIndex) => (
+              <div
+                key={`actor-${row.index}-skill-${skillId}-${skillIndex}`}
+                className="flex items-center justify-between gap-2 rounded-md border px-3 py-2"
+              >
+                <span className="text-sm">
+                  #{skillId} {skillMap.get(skillId)?.name || "(未知技能)"}
+                </span>
+                <Button variant="outline" size="sm" onClick={() => onRemoveSkill(skillId)}>
+                  删除
+                </Button>
+              </div>
+            ))}
+            {row.skills.length === 0 && (
+              <div className="text-sm text-muted-foreground">当前无技能</div>
+            )}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            技能添加请在左侧切到“技能”标签后使用“加到当前角色”。
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

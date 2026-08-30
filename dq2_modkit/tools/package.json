@@ -2,16 +2,28 @@
   "name": "dq2-modkit-tools",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "typecheck": "tsc --noEmit",
+    "encrypt-saves": "tsx encrypt-saves.ts",
+    "extract-data-pak": "tsx extract-data-pak.ts",
+    "extract-usedata": "tsx extract-usedata.ts",
+    "extract-bytecode-bundles": "tsx extract-bytecode-bundles.ts",
+    "build-gui-cache": "tsx build-gui-cache.ts",
+    "trainer-send": "tsx trainer-send.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
     "@msgpack/msgpack": "^3.1.2",
     "bytenode": "^1.5.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
   }
 }

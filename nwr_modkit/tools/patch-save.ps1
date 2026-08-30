@@ -12,8 +12,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$TsxCommand = Join-Path $PSScriptRoot "node_modules\.bin\tsx.cmd"
+if (-not (Test-Path -LiteralPath $TsxCommand)) {
+  $TsxCommand = (Get-Command tsx -ErrorAction Stop).Source
+}
+
 $ArgsList = @(
-  (Join-Path $PSScriptRoot "patch-save.mjs"),
+  (Join-Path $PSScriptRoot "patch-save.ts"),
   "--slot", $Slot
 )
 
@@ -42,8 +47,8 @@ foreach ($Value in $GameSwitch) {
   $ArgsList += @("--switch", $Value)
 }
 
-& node @ArgsList
+& $TsxCommand @ArgsList
 
 if ($LASTEXITCODE -ne 0) {
-  throw "patch-save.mjs failed with exit code $LASTEXITCODE"
+  throw "patch-save.ts failed with exit code $LASTEXITCODE"
 }

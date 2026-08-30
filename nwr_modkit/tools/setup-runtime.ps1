@@ -6,6 +6,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$TsxCommand = Join-Path $PSScriptRoot "node_modules\.bin\tsx.cmd"
+if (-not (Test-Path -LiteralPath $TsxCommand)) {
+  $TsxCommand = (Get-Command tsx -ErrorAction Stop).Source
+}
+
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 . (Join-Path $PSScriptRoot "modkit-config.ps1")
 $GameRoot = Resolve-Dq2GameRoot -ProjectRoot $ProjectRoot -GameRoot $GameRoot
@@ -38,7 +43,8 @@ function Install-NodeDependencies {
   param(
     [string]$Directory,
     [string]$Label,
-    [string]$NpmRegistry
+    [string]$NpmRegistry,
+    [switch]$Dev
   )
 
   $modules = Join-Path $Directory "node_modules"
@@ -66,7 +72,11 @@ function Install-NodeDependencies {
     foreach ($registry in $registries) {
       $lastRegistry = $registry
       Write-Host "Using npm registry: $registry"
-      & $npmCommand install --omit=dev --registry $registry
+      if ($Dev) {
+        & $npmCommand install --registry $registry
+      } else {
+        & $npmCommand install --omit=dev --registry $registry
+      }
       $lastExitCode = $LASTEXITCODE
       if ($lastExitCode -eq 0) { return }
       Write-Warning "$Label npm install failed with registry $registry, exit code $lastExitCode"
@@ -141,12 +151,12 @@ foreach ($targetRel in $Targets) {
   }
 }
 
-& node (Join-Path $PSScriptRoot "extract-bytecode-bundles.mjs")
+& $TsxCommand (Join-Path $PSScriptRoot "extract-bytecode-bundles.ts")
 if ($LASTEXITCODE -ne 0) {
-  throw "extract-bytecode-bundles.mjs failed with exit code $LASTEXITCODE"
+  throw "extract-bytecode-bundles.ts failed with exit code $LASTEXITCODE"
 }
 
-Install-NodeDependencies -Directory $PSScriptRoot -Label "tools" -NpmRegistry $NpmRegistry
+Install-NodeDependencies -Directory $PSScriptRoot -Label "tools" -NpmRegistry $NpmRegistry -Dev
 Install-NodeDependencies -Directory (Join-Path $ProjectRoot "runtime\save-harness") -Label "save-harness" -NpmRegistry $NpmRegistry
 
 Write-Host "Runtime links refreshed from $GameRoot"

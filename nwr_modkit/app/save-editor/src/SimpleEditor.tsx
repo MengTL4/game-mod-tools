@@ -1,4 +1,17 @@
 import { useMemo, useState } from "react";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  Select,
+  Switch,
+  cn,
+} from "@game-mod-tools/ui";
 
 export type SimpleTab = "basic" | "variables" | "switches" | "inventory" | "actors";
 export type InventoryKind = "all" | "items" | "weapons" | "armors";
@@ -39,7 +52,7 @@ const INVENTORY_LABELS: Record<InventoryKind, string> = {
   all: "全部",
   items: "物品",
   weapons: "武器",
-  armors: "防具"
+  armors: "防具",
 };
 const PAGE_SIZE = 20;
 
@@ -89,11 +102,17 @@ export default function SimpleEditor({ value, dataIndex, onChange }: SimpleEdito
 
   if (!save) {
     return (
-      <div className="simple-editor empty">
-        <div className="simple-empty">
-          <h2>简易编辑器</h2>
-          <p>先打开一个存档或 JSON，然后这里会显示金币、变量、开关、背包和角色编辑区。</p>
-        </div>
+      <div className="flex min-h-[400px] items-center justify-center p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>简易编辑器</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              先打开一个存档或 JSON，然后这里会显示金币、变量、开关、背包和角色编辑区。
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -181,256 +200,434 @@ export default function SimpleEditor({ value, dataIndex, onChange }: SimpleEdito
   const actorSpentPoints = getClassNumber(selectedActor, "_spentAllocationPoints", selectedClassId);
   const actorJp = getClassNumber(selectedActor, "_jp", selectedClassId);
 
+  const tabs: [SimpleTab, string][] = [
+    ["basic", "基础"],
+    ["variables", "变量"],
+    ["switches", "开关"],
+    ["inventory", "背包"],
+    ["actors", "角色"],
+  ];
+
   return (
-    <div className="simple-editor">
-      <div className="simple-toolbar">
+    <div className="flex h-full flex-col p-6">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="eyebrow">SIMPLE SAVE EDITOR</div>
-          <h2>简易编辑</h2>
+          <div className="text-xs font-semibold tracking-tight text-primary">
+            SIMPLE SAVE EDITOR
+          </div>
+          <h2 className="text-2xl font-semibold tracking-tight">简易编辑</h2>
         </div>
-        <div className="simple-tabs" role="tablist" aria-label="简易编辑分类">
-          {[
-            ["basic", "基础"],
-            ["variables", "变量"],
-            ["switches", "开关"],
-            ["inventory", "背包"],
-            ["actors", "角色"]
-          ].map(([id, label]) => (
-            <button
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="简易编辑分类">
+          {tabs.map(([id, label]) => (
+            <Button
               key={id}
-              className={tab === id ? "active" : ""}
-              onClick={() => setTab(id as SimpleTab)}
+              variant={tab === id ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTab(id)}
               type="button"
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
       {tab === "basic" && (
-        <section className="simple-section">
-          <div className="simple-section-head">
-            <h3>基础数值</h3>
-            <span>直接写入存档路径 party._gold</span>
-          </div>
-          <div className="simple-form-grid">
-            <label>
-              <span>金币</span>
-              <input type="number" value={gold} onChange={(event) => setGold(numberInput(event.currentTarget.value))} />
-            </label>
-            <div className="quick-buttons">
-              {[10000, 100000, 1000000, 8999999].map((amount) => (
-                <button key={amount} type="button" onClick={() => setGold(amount)}>{amount.toLocaleString()}</button>
-              ))}
+        <Card>
+          <CardHeader>
+            <CardTitle>基础数值</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
+              <Label className="space-y-2">
+                <span>金币</span>
+                <Input
+                  type="number"
+                  value={gold}
+                  onChange={(event) => setGold(numberInput(event.currentTarget.value))}
+                />
+              </Label>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[10000, 100000, 1000000, 8999999].map((amount) => (
+                  <Button
+                    key={amount}
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setGold(amount)}
+                  >
+                    {amount.toLocaleString()}
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       )}
 
       {tab === "variables" && (
-        <section className="simple-section">
-          <div className="simple-section-head">
-            <h3>变量</h3>
-            <span>来自 System.json variables</span>
-          </div>
-          <input
-            className="simple-search"
-            value={variableQuery}
-            onChange={(event) => {
-              setVariableQuery(event.currentTarget.value);
-              setVariablePage(1);
-            }}
-            placeholder="搜索变量 ID 或名称"
-          />
-          <Pagination page={variablePageData.page} pageCount={variablePageData.pageCount} total={variablePageData.total} start={variablePageData.start} end={variablePageData.end} onPageChange={setVariablePage} />
-          <div className="simple-table">
-            {variablePageData.items.map((entry) => (
-              <div className="simple-row" key={entry.id}>
-                <div className="simple-row-main">
-                  <strong>{entry.id}. {entry.name}</strong>
-                  <span>variables._data.@a[{entry.id}]</span>
+        <Card className="flex flex-col">
+          <CardHeader>
+            <CardTitle>变量</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Input
+              value={variableQuery}
+              onChange={(event) => {
+                setVariableQuery(event.currentTarget.value);
+                setVariablePage(1);
+              }}
+              placeholder="搜索变量 ID 或名称"
+            />
+            <Pagination
+              page={variablePageData.page}
+              pageCount={variablePageData.pageCount}
+              total={variablePageData.total}
+              start={variablePageData.start}
+              end={variablePageData.end}
+              onPageChange={setVariablePage}
+            />
+            <div className="space-y-2 overflow-auto">
+              {variablePageData.items.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-center gap-3 rounded-md border p-3"
+                >
+                  <div className="flex-1 space-y-1">
+                    <div className="text-sm font-medium">
+                      {entry.id}. {entry.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-mono">
+                      variables._data.@a[{entry.id}]
+                    </div>
+                  </div>
+                  <Input
+                    type="number"
+                    className="w-32"
+                    value={getNumber(variableValues[entry.id])}
+                    onChange={(event) => setVariable(entry.id, numberInput(event.currentTarget.value))}
+                  />
                 </div>
-                <input type="number" value={getNumber(variableValues[entry.id])} onChange={(event) => setVariable(entry.id, numberInput(event.currentTarget.value))} />
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {tab === "switches" && (
-        <section className="simple-section">
-          <div className="simple-section-head">
-            <h3>开关</h3>
-            <span>来自 System.json switches</span>
-          </div>
-          <input
-            className="simple-search"
-            value={switchQuery}
-            onChange={(event) => {
-              setSwitchQuery(event.currentTarget.value);
-              setSwitchPage(1);
-            }}
-            placeholder="搜索开关 ID 或名称"
-          />
-          <Pagination page={switchPageData.page} pageCount={switchPageData.pageCount} total={switchPageData.total} start={switchPageData.start} end={switchPageData.end} onPageChange={setSwitchPage} />
-          <div className="simple-table">
-            {switchPageData.items.map((entry) => (
-              <div className="simple-row" key={entry.id}>
-                <div className="simple-row-main">
-                  <strong>{entry.id}. {entry.name}</strong>
-                  <span>switches._data.@a[{entry.id}]</span>
+        <Card className="flex flex-col">
+          <CardHeader>
+            <CardTitle>开关</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Input
+              value={switchQuery}
+              onChange={(event) => {
+                setSwitchQuery(event.currentTarget.value);
+                setSwitchPage(1);
+              }}
+              placeholder="搜索开关 ID 或名称"
+            />
+            <Pagination
+              page={switchPageData.page}
+              pageCount={switchPageData.pageCount}
+              total={switchPageData.total}
+              start={switchPageData.start}
+              end={switchPageData.end}
+              onPageChange={setSwitchPage}
+            />
+            <div className="space-y-2 overflow-auto">
+              {switchPageData.items.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-center justify-between gap-3 rounded-md border p-3"
+                >
+                  <div className="flex-1 space-y-1">
+                    <div className="text-sm font-medium">
+                      {entry.id}. {entry.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-mono">
+                      switches._data.@a[{entry.id}]
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id={`switch-${entry.id}`}
+                      checked={switchValues[entry.id] === true}
+                      onChange={(event) => setSwitch(entry.id, event.currentTarget.checked)}
+                    />
+                    <Label htmlFor={`switch-${entry.id}`}>
+                      {switchValues[entry.id] === true ? "ON" : "OFF"}
+                    </Label>
+                  </div>
                 </div>
-                <label className="simple-toggle">
-                  <input type="checkbox" checked={switchValues[entry.id] === true} onChange={(event) => setSwitch(entry.id, event.currentTarget.checked)} />
-                  <span>{switchValues[entry.id] === true ? "ON" : "OFF"}</span>
-                </label>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {tab === "inventory" && (
-        <section className="simple-section">
-          <div className="simple-section-head">
-            <h3>背包</h3>
-            <span>来自 Items / Weapons / Armors</span>
-          </div>
-          <div className="simple-filterbar">
-            <select
-              value={inventoryKind}
-              onChange={(event) => {
-                setInventoryKind(event.currentTarget.value as InventoryKind);
-                setInventoryPage(1);
-              }}
-            >
-              <option value="all">全部</option>
-              <option value="items">物品</option>
-              <option value="weapons">武器</option>
-              <option value="armors">防具</option>
-            </select>
-            <input
-              className="simple-search"
-              value={inventoryQuery}
-              onChange={(event) => {
-                setInventoryQuery(event.currentTarget.value);
-                setInventoryPage(1);
-              }}
-              placeholder="搜索 ID、名称、描述"
+        <Card className="flex flex-col">
+          <CardHeader>
+            <CardTitle>背包</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[200px_1fr]">
+              <Select
+                value={inventoryKind}
+                onChange={(event) => {
+                  setInventoryKind(event.currentTarget.value as InventoryKind);
+                  setInventoryPage(1);
+                }}
+              >
+                <option value="all">全部</option>
+                <option value="items">物品</option>
+                <option value="weapons">武器</option>
+                <option value="armors">防具</option>
+              </Select>
+              <Input
+                value={inventoryQuery}
+                onChange={(event) => {
+                  setInventoryQuery(event.currentTarget.value);
+                  setInventoryPage(1);
+                }}
+                placeholder="搜索 ID、名称、描述"
+              />
+            </div>
+            <Pagination
+              page={inventoryPageData.page}
+              pageCount={inventoryPageData.pageCount}
+              total={inventoryPageData.total}
+              start={inventoryPageData.start}
+              end={inventoryPageData.end}
+              onPageChange={setInventoryPage}
             />
-          </div>
-          <Pagination page={inventoryPageData.page} pageCount={inventoryPageData.pageCount} total={inventoryPageData.total} start={inventoryPageData.start} end={inventoryPageData.end} onPageChange={setInventoryPage} />
-          <div className="simple-table inventory-table">
-            {inventoryPageData.items.map((entry) => {
-              const bagKind = inventoryBagKind(entry);
-              const count = getInventoryCount(save, entry);
-              return (
-                <div className={count > 0 ? "simple-row owned" : "simple-row"} key={`${bagKind}:${entry.id}`}>
-                  <div className="simple-row-main">
-                    <strong>{INVENTORY_LABELS[bagKind]} {entry.id}. {entry.name}</strong>
-                    <span>{entry.description || entry.extra || `${INVENTORY_LABELS[bagKind]} ${entry.id}`}</span>
+            <div className="space-y-2 overflow-auto">
+              {inventoryPageData.items.map((entry) => {
+                const bagKind = inventoryBagKind(entry);
+                const count = getInventoryCount(save, entry);
+                return (
+                  <div
+                    key={`${bagKind}:${entry.id}`}
+                    className={cn(
+                      "flex items-center gap-3 rounded-md border p-3",
+                      count > 0 && "bg-primary/10"
+                    )}
+                  >
+                    <div className="flex-1 space-y-1">
+                      <div className="text-sm font-medium">
+                        {INVENTORY_LABELS[bagKind]} {entry.id}. {entry.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {entry.description || entry.extra || `${INVENTORY_LABELS[bagKind]} ${entry.id}`}
+                      </div>
+                    </div>
+                    <Input
+                      type="number"
+                      min="0"
+                      className="w-32"
+                      value={count}
+                      onChange={(event) => setInventoryCount(bagKind, entry.id, numberInput(event.currentTarget.value))}
+                    />
                   </div>
-                  <input type="number" min="0" value={count} onChange={(event) => setInventoryCount(bagKind, entry.id, numberInput(event.currentTarget.value))} />
-                </div>
-              );
-            })}
-          </div>
-        </section>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {tab === "actors" && (
-        <section className="simple-section">
-          <div className="simple-section-head">
-            <h3>角色</h3>
-            <span>来自 Actors / Classes / Skills</span>
-          </div>
-          <div className="simple-filterbar">
-            <input className="simple-search" value={actorQuery} onChange={(event) => setActorQuery(event.currentTarget.value)} placeholder="搜索角色 ID 或名称" />
-            <select value={selectedActorId} onChange={(event) => setSelectedActorId(numberInput(event.currentTarget.value))}>
-              {actorOptions.map((entry) => (
-                <option key={entry.id} value={entry.id}>{entry.id}. {entry.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="actor-editor">
-            <div className="actor-summary">
-              <strong>{selectedActorId}. {selectedActor?._name ? String(selectedActor._name) : selectedActorData?.name || "未命名角色"}</strong>
-              <span>{selectedClass ? `职业：${selectedClass.name}` : `职业 ID：${getNumber(getField(selectedActor, "_classId")) || "-"}`}</span>
-              <label className="simple-toggle">
-                <input type="checkbox" checked={partyActorIds.includes(selectedActorId)} onChange={(event) => setActorParty(selectedActorId, event.currentTarget.checked)} />
-                <span>{partyActorIds.includes(selectedActorId) ? "队伍中" : "未入队"}</span>
-              </label>
+        <Card className="flex flex-col">
+          <CardHeader>
+            <CardTitle>角色</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_280px]">
+              <Input
+                value={actorQuery}
+                onChange={(event) => setActorQuery(event.currentTarget.value)}
+                placeholder="搜索角色 ID 或名称"
+              />
+              <Select
+                value={selectedActorId}
+                onChange={(event) => setSelectedActorId(numberInput(event.currentTarget.value))}
+              >
+                {actorOptions.map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.id}. {entry.name}
+                  </option>
+                ))}
+              </Select>
             </div>
 
-            {selectedActor ? (
-              <>
-                <div className="simple-form-grid actor-stats">
-                  <label><span>等级</span><input type="number" min="1" value={getNumber(selectedActor._level)} onChange={(event) => setActorField(selectedActorId, "_level", numberInput(event.currentTarget.value))} /></label>
-                  <label><span>HP</span><input type="number" min="0" value={getNumber(selectedActor._hp)} onChange={(event) => setActorField(selectedActorId, "_hp", numberInput(event.currentTarget.value))} /></label>
-                  <label><span>MP</span><input type="number" min="0" value={getNumber(selectedActor._mp)} onChange={(event) => setActorField(selectedActorId, "_mp", numberInput(event.currentTarget.value))} /></label>
-                  <label><span>TP</span><input type="number" min="0" value={getNumber(selectedActor._tp)} onChange={(event) => setActorField(selectedActorId, "_tp", numberInput(event.currentTarget.value))} /></label>
-                </div>
-
-                <div className="point-editor">
-                  <div className="simple-subhead">
-                    <strong>属性点 / SP</strong>
-                    <span>当前职业 ID：{selectedClassId}</span>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 rounded-md border bg-primary/10 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <div className="text-sm font-medium">
+                    {selectedActorId}. {selectedActor?._name ? String(selectedActor._name) : selectedActorData?.name || "未命名角色"}
                   </div>
-                  <div className="simple-form-grid point-grid">
-                    <label>
-                      <span>可用属性点</span>
-                      <input type="number" min="0" value={actorBonusPoints} onChange={(event) => setActorClassNumber(selectedActorId, "_bonusAllocationPoints", selectedClassId, numberInput(event.currentTarget.value))} />
-                    </label>
-                    <label>
-                      <span>已用属性点</span>
-                      <input type="number" min="0" value={actorSpentPoints} onChange={(event) => setActorClassNumber(selectedActorId, "_spentAllocationPoints", selectedClassId, numberInput(event.currentTarget.value))} />
-                    </label>
-                    <label>
-                      <span>SP / JP</span>
-                      <input type="number" min="0" value={actorJp} onChange={(event) => setActorClassNumber(selectedActorId, "_jp", selectedClassId, numberInput(event.currentTarget.value))} />
-                    </label>
+                  <div className="text-xs text-primary">
+                    {selectedClass ? `职业：${selectedClass.name}` : `职业 ID：${getNumber(getField(selectedActor, "_classId")) || "-"}`}
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="actor-party"
+                    checked={partyActorIds.includes(selectedActorId)}
+                    onChange={(event) => setActorParty(selectedActorId, event.currentTarget.checked)}
+                  />
+                  <Label htmlFor="actor-party">
+                    {partyActorIds.includes(selectedActorId) ? "队伍中" : "未入队"}
+                  </Label>
+                </div>
+              </div>
 
-                <div className="skill-editor">
-                  <div>
-                    <strong>已学技能</strong>
-                    <span>{actorSkills.length ? actorSkills.map((id) => skillName(dataIndex, id)).join("、") : "无"}</span>
+              {selectedActor ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <Label className="space-y-2">
+                      <span>等级</span>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={getNumber(selectedActor._level)}
+                        onChange={(event) => setActorField(selectedActorId, "_level", numberInput(event.currentTarget.value))}
+                      />
+                    </Label>
+                    <Label className="space-y-2">
+                      <span>HP</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={getNumber(selectedActor._hp)}
+                        onChange={(event) => setActorField(selectedActorId, "_hp", numberInput(event.currentTarget.value))}
+                      />
+                    </Label>
+                    <Label className="space-y-2">
+                      <span>MP</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={getNumber(selectedActor._mp)}
+                        onChange={(event) => setActorField(selectedActorId, "_mp", numberInput(event.currentTarget.value))}
+                      />
+                    </Label>
+                    <Label className="space-y-2">
+                      <span>TP</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={getNumber(selectedActor._tp)}
+                        onChange={(event) => setActorField(selectedActorId, "_tp", numberInput(event.currentTarget.value))}
+                      />
+                    </Label>
                   </div>
-                  <div className="simple-filterbar">
-                    <input
-                      className="simple-search"
-                      value={skillQuery}
-                      onChange={(event) => {
-                        setSkillQuery(event.currentTarget.value);
-                        setSkillPage(1);
-                      }}
-                      placeholder="搜索技能 ID 或名称"
-                    />
-                  </div>
-                  <Pagination page={skillPageData.page} pageCount={skillPageData.pageCount} total={skillPageData.total} start={skillPageData.start} end={skillPageData.end} onPageChange={setSkillPage} />
-                  <div className="simple-table skill-table">
-                    {skillPageData.items.map((skill) => (
-                      <div className={actorSkills.includes(skill.id) ? "simple-row owned" : "simple-row"} key={skill.id}>
-                        <div className="simple-row-main">
-                          <strong>{skill.id}. {skill.name}</strong>
-                          <span>{skill.description || skill.note || "技能"}</span>
-                        </div>
-                        <button type="button" onClick={() => setActorSkill(selectedActorId, skill.id, !actorSkills.includes(skill.id))}>
-                          {actorSkills.includes(skill.id) ? "遗忘" : "学习"}
-                        </button>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">属性点 / SP</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="mb-3 text-xs text-muted-foreground">
+                        当前职业 ID：{selectedClassId}
                       </div>
-                    ))}
-                  </div>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <Label className="space-y-2">
+                          <span>可用属性点</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={actorBonusPoints}
+                            onChange={(event) => setActorClassNumber(selectedActorId, "_bonusAllocationPoints", selectedClassId, numberInput(event.currentTarget.value))}
+                          />
+                        </Label>
+                        <Label className="space-y-2">
+                          <span>已用属性点</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={actorSpentPoints}
+                            onChange={(event) => setActorClassNumber(selectedActorId, "_spentAllocationPoints", selectedClassId, numberInput(event.currentTarget.value))}
+                          />
+                        </Label>
+                        <Label className="space-y-2">
+                          <span>SP / JP</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={actorJp}
+                            onChange={(event) => setActorClassNumber(selectedActorId, "_jp", selectedClassId, numberInput(event.currentTarget.value))}
+                          />
+                        </Label>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">已学技能</CardTitle>
+                      <CardDescription>
+                        {actorSkills.length ? actorSkills.map((id) => skillName(dataIndex, id)).join("、") : "无"}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Input
+                        value={skillQuery}
+                        onChange={(event) => {
+                          setSkillQuery(event.currentTarget.value);
+                          setSkillPage(1);
+                        }}
+                        placeholder="搜索技能 ID 或名称"
+                      />
+                      <Pagination
+                        page={skillPageData.page}
+                        pageCount={skillPageData.pageCount}
+                        total={skillPageData.total}
+                        start={skillPageData.start}
+                        end={skillPageData.end}
+                        onPageChange={setSkillPage}
+                      />
+                      <div className="space-y-2 overflow-auto">
+                        {skillPageData.items.map((skill) => (
+                          <div
+                            key={skill.id}
+                            className={cn(
+                              "flex items-center justify-between gap-3 rounded-md border p-3",
+                              actorSkills.includes(skill.id) && "bg-primary/10"
+                            )}
+                          >
+                            <div className="flex-1 space-y-1">
+                              <div className="text-sm font-medium">
+                                {skill.id}. {skill.name}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {skill.description || skill.note || "技能"}
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={actorSkills.includes(skill.id) ? "outline" : "default"}
+                              onClick={() => setActorSkill(selectedActorId, skill.id, !actorSkills.includes(skill.id))}
+                            >
+                              {actorSkills.includes(skill.id) ? "遗忘" : "学习"}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                <div className="rounded-md border p-3 text-sm text-muted-foreground">
+                  该角色在当前存档里没有角色对象，暂时只能编辑入队状态。
                 </div>
-              </>
-            ) : (
-              <div className="simple-empty inline">该角色在当前存档里没有角色对象，暂时只能编辑入队状态。</div>
-            )}
-          </div>
-        </section>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
@@ -457,14 +654,26 @@ interface PaginationProps {
 function Pagination({ page, pageCount, total, start, end, onPageChange }: PaginationProps) {
   const from = total === 0 ? 0 : start + 1;
   return (
-    <div className="pagination-bar">
-      <span>{from}-{end} / {total}</span>
-      <div>
-        <button type="button" onClick={() => onPageChange(1)} disabled={page <= 1}>首页</button>
-        <button type="button" onClick={() => onPageChange(page - 1)} disabled={page <= 1}>上一页</button>
-        <strong>{page} / {pageCount}</strong>
-        <button type="button" onClick={() => onPageChange(page + 1)} disabled={page >= pageCount}>下一页</button>
-        <button type="button" onClick={() => onPageChange(pageCount)} disabled={page >= pageCount}>末页</button>
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <span className="text-sm text-muted-foreground">
+        {from}-{end} / {total}
+      </span>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" size="sm" variant="outline" onClick={() => onPageChange(1)} disabled={page <= 1}>
+          首页
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => onPageChange(page - 1)} disabled={page <= 1}>
+          上一页
+        </Button>
+        <span className="text-sm font-medium px-2">
+          {page} / {pageCount}
+        </span>
+        <Button type="button" size="sm" variant="outline" onClick={() => onPageChange(page + 1)} disabled={page >= pageCount}>
+          下一页
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => onPageChange(pageCount)} disabled={page >= pageCount}>
+          末页
+        </Button>
       </div>
     </div>
   );
@@ -482,14 +691,16 @@ function paginate<T>(items: T[], requestedPage: number): PageData<T> {
     pageCount,
     total,
     start,
-    end
+    end,
   };
 }
 
 function filterEntries(entries: CatalogEntry[], query: string): CatalogEntry[] {
   const text = query.trim().toLowerCase();
   return text
-    ? entries.filter((entry) => `${entry.id} ${entry.name} ${entry.searchText || ""}`.toLowerCase().includes(text))
+    ? entries.filter((entry) =>
+        `${entry.id} ${entry.name} ${entry.searchText || ""}`.toLowerCase().includes(text)
+      )
     : entries;
 }
 
@@ -499,7 +710,7 @@ function getInventoryCatalogEntries(dataIndex: GameDataIndex | null, kind: Inven
   return [
     ...dataIndex.items,
     ...dataIndex.weapons,
-    ...dataIndex.armors
+    ...dataIndex.armors,
   ];
 }
 
@@ -526,10 +737,11 @@ function deepClone(value: unknown): unknown {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
-function getRecord(value: unknown, key: string): Record<string, unknown> | null;
 function getRecord(value: unknown, key?: string): Record<string, unknown> | null {
   const target = key === undefined ? value : asRecord(value)?.[key];
   return asRecord(target);

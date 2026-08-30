@@ -23,8 +23,8 @@ function Invoke-BridgeBuildIfNeeded {
   }
   if (-not $needsBuild) { return }
 
-  & node (Join-Path $PSScriptRoot "build-bridge.mjs")
-  if ($LASTEXITCODE -ne 0) { throw "build-bridge.mjs failed with exit code $LASTEXITCODE" }
+  & npx tsx (Join-Path $PSScriptRoot "build-bridge.ts")
+  if ($LASTEXITCODE -ne 0) { throw "build-bridge.ts failed with exit code $LASTEXITCODE" }
 }
 
 if (-not (Test-Path -LiteralPath $GameExe)) {

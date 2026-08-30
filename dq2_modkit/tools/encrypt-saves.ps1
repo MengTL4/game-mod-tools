@@ -15,8 +15,8 @@ if (-not $OutputDir) {
   $OutputDir = Join-Path $ProjectRoot "output\repack\save"
 }
 
+$ScriptPath = Join-Path $PSScriptRoot "encrypt-saves.ts"
 $ArgsList = @(
-  (Join-Path $PSScriptRoot "encrypt-saves.mjs"),
   "--input", $InputDir,
   "--output", $OutputDir,
   "--ids", ($Ids -join ",")
@@ -26,10 +26,14 @@ if ($NoConfig) {
   $ArgsList += "--no-config"
 }
 
-& node @ArgsList
-
-if ($LASTEXITCODE -ne 0) {
-  throw "encrypt-saves.mjs failed with exit code $LASTEXITCODE"
+Push-Location $PSScriptRoot
+try {
+  & npx tsx $ScriptPath @ArgsList
+  if ($LASTEXITCODE -ne 0) {
+    throw "encrypt-saves.ts failed with exit code $LASTEXITCODE"
+  }
+} finally {
+  Pop-Location
 }
 
 Get-ChildItem -LiteralPath $OutputDir | Select-Object Name, Length

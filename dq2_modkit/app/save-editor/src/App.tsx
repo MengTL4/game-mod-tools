@@ -2,12 +2,23 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import JSONEditor, { type JSONEditorOptions } from "jsoneditor";
 import "jsoneditor/dist/jsoneditor.css";
 import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  Select,
+  cn,
+} from "@game-mod-tools/ui";
+import {
   decodeSaveText,
   encodeSaveText,
   fromJsonFriendly,
   toJsonFriendly,
   type DecodedSave,
-  type SaveKind
+  type SaveKind,
 } from "./codec";
 
 type ModeChoice = "auto" | SaveKind;
@@ -24,7 +35,11 @@ function inferId(fileName: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
-function createDownload(content: string, fileName: string, mime = "text/plain;charset=utf-8"): void {
+function createDownload(
+  content: string,
+  fileName: string,
+  mime = "text/plain;charset=utf-8"
+): void {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -56,8 +71,14 @@ export default function App() {
   const editorHostRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<JSONEditor | null>(null);
 
-  const outputSaveName = useMemo(() => `${stripExt(loadedName)}.edited.rpgsave`, [loadedName]);
-  const outputJsonName = useMemo(() => `${stripExt(loadedName)}.json`, [loadedName]);
+  const outputSaveName = useMemo(
+    () => `${stripExt(loadedName)}.edited.rpgsave`,
+    [loadedName]
+  );
+  const outputJsonName = useMemo(
+    () => `${stripExt(loadedName)}.json`,
+    [loadedName]
+  );
 
   useEffect(() => {
     if (!editorHostRef.current) return;
@@ -68,7 +89,7 @@ export default function App() {
       mainMenuBar: true,
       navigationBar: true,
       statusBar: true,
-      onError: (value: Error) => setError(value.message)
+      onError: (value: Error) => setError(value.message),
     };
     const editor = new JSONEditor(editorHostRef.current, options, {});
     editorRef.current = editor;
@@ -88,7 +109,9 @@ export default function App() {
     return editorRef.current.get();
   }
 
-  async function handleSaveLoad(event: React.ChangeEvent<HTMLInputElement>): Promise<void> {
+  async function handleSaveLoad(
+    event: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -98,9 +121,16 @@ export default function App() {
       const inferredId = inferId(file.name);
       if (inferredId != null) setSaveId(String(inferredId));
       const requestedId = inferredId ?? Number(saveId);
-      const result = await decodeSaveText(text, file.name, Number.isFinite(requestedId) ? requestedId : null);
+      const result = await decodeSaveText(
+        text,
+        file.name,
+        Number.isFinite(requestedId) ? requestedId : null
+      );
       const selectedKind = modeChoice === "auto" ? result.kind : modeChoice;
-      const normalized = selectedKind === result.kind ? result : { ...result, kind: selectedKind };
+      const normalized =
+        selectedKind === result.kind
+          ? result
+          : { ...result, kind: selectedKind };
       setLoadedName(file.name);
       setJsonName(`${stripExt(file.name)}.json`);
       setDecoded(normalized);
@@ -116,7 +146,9 @@ export default function App() {
     }
   }
 
-  async function handleJsonLoad(event: React.ChangeEvent<HTMLInputElement>): Promise<void> {
+  async function handleJsonLoad(
+    event: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -153,7 +185,12 @@ export default function App() {
     try {
       setError("");
       const restored = fromJsonFriendly(getEditorValue());
-      const text = await encodeSaveText(restored, currentKind(), currentSaveId(), decoded?.parts);
+      const text = await encodeSaveText(
+        restored,
+        currentKind(),
+        currentSaveId(),
+        decoded?.parts
+      );
       createDownload(text, outputSaveName);
       setStatus(`已导出 ${outputSaveName}`);
     } catch (cause) {
@@ -166,7 +203,11 @@ export default function App() {
   function handleExportJson(): void {
     try {
       setError("");
-      createDownload(JSON.stringify(getEditorValue(), null, 2), jsonName || outputJsonName, "application/json;charset=utf-8");
+      createDownload(
+        JSON.stringify(getEditorValue(), null, 2),
+        jsonName || outputJsonName,
+        "application/json;charset=utf-8"
+      );
       setStatus(`已导出 ${jsonName || outputJsonName}`);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause);
@@ -188,65 +229,152 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
+    <div className="grid h-screen min-w-[980px] grid-rows-[auto_1fr]">
+      <header className="flex items-center justify-between border-b bg-card/95 px-5 py-3.5 backdrop-blur">
         <div>
-          <div className="eyebrow">OFFLINE SAVE FILE</div>
-          <h1>大千世界2 存档编辑器</h1>
+          <div className="text-xs font-bold uppercase tracking-wider text-primary">
+            Offline Save File
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            大千世界2 存档编辑器
+          </h1>
         </div>
-        <div className="top-actions">
-          <div className={error ? "status status-error" : "status"}>{status}</div>
-          <button className="primary" onClick={() => saveFileRef.current?.click()}>打开存档</button>
-          <button onClick={() => jsonFileRef.current?.click()}>打开 JSON</button>
-          <button onClick={handleExportJson}>导出 JSON</button>
-          <button onClick={() => void handleExportSave()}>导出存档</button>
+        <div className="flex items-center gap-3">
+          <div
+            className={cn(
+              "inline-flex min-w-[92px] items-center justify-center rounded-full border px-3 py-1 text-sm font-semibold",
+              error
+                ? "border-destructive/30 bg-destructive/10 text-destructive"
+                : "border-primary/30 bg-primary/10 text-primary"
+            )}
+          >
+            {status}
+          </div>
+          <Button onClick={() => saveFileRef.current?.click()}>
+            打开存档
+          </Button>
+          <Button variant="secondary" onClick={() => jsonFileRef.current?.click()}>
+            打开 JSON
+          </Button>
+          <Button variant="outline" onClick={handleExportJson}>
+            导出 JSON
+          </Button>
+          <Button variant="default" onClick={() => void handleExportSave()}>
+            导出存档
+          </Button>
         </div>
       </header>
 
-      <main className="layout">
-        <aside className="side-panel">
-          <section className="panel">
-            <div className="panel-title">文件</div>
-            <dl className="meta-list">
-              <div><dt>存档</dt><dd>{loadedName}</dd></div>
-              <div><dt>类型</dt><dd>{decoded?.kind ?? "-"}</dd></div>
-              <div><dt>槽位</dt><dd>{decoded?.saveId ?? "-"}</dd></div>
-              <div><dt>Payload</dt><dd>{decoded ? decoded.payloadLength.toLocaleString() : "-"}</dd></div>
-              <div><dt>MsgPack</dt><dd>{decoded ? formatBytes(decoded.msgpackLength) : "-"}</dd></div>
-            </dl>
-          </section>
+      <main className="grid min-h-0 grid-cols-[328px_1fr] gap-4 overflow-auto bg-background p-4">
+        <aside className="grid min-h-0 grid-rows-[auto_auto_1fr] gap-3">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">文件</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between border-t pt-2 first:border-t-0 first:pt-0">
+                  <dt className="text-muted-foreground">存档</dt>
+                  <dd className="break-all font-mono text-xs">{loadedName}</dd>
+                </div>
+                <div className="flex justify-between border-t pt-2 first:border-t-0 first:pt-0">
+                  <dt className="text-muted-foreground">类型</dt>
+                  <dd className="font-mono text-xs">{decoded?.kind ?? "-"}</dd>
+                </div>
+                <div className="flex justify-between border-t pt-2 first:border-t-0 first:pt-0">
+                  <dt className="text-muted-foreground">槽位</dt>
+                  <dd className="font-mono text-xs">{decoded?.saveId ?? "-"}</dd>
+                </div>
+                <div className="flex justify-between border-t pt-2 first:border-t-0 first:pt-0">
+                  <dt className="text-muted-foreground">Payload</dt>
+                  <dd className="font-mono text-xs">
+                    {decoded ? decoded.payloadLength.toLocaleString() : "-"}
+                  </dd>
+                </div>
+                <div className="flex justify-between border-t pt-2 first:border-t-0 first:pt-0">
+                  <dt className="text-muted-foreground">MsgPack</dt>
+                  <dd className="font-mono text-xs">
+                    {decoded ? formatBytes(decoded.msgpackLength) : "-"}
+                  </dd>
+                </div>
+              </dl>
+            </CardContent>
+          </Card>
 
-          <section className="panel control-panel">
-            <div className="panel-title">编码</div>
-            <label>
-              <span>输出类型</span>
-              <select value={modeChoice} onChange={(event) => setModeChoice(event.target.value as ModeChoice)}>
-                <option value="auto">auto</option>
-                <option value="v2">v2 save/global</option>
-                <option value="config">config</option>
-              </select>
-            </label>
-            <label>
-              <span>槽位 ID</span>
-              <input value={saveId} onChange={(event) => setSaveId(event.target.value)} inputMode="numeric" />
-            </label>
-            <div className="button-grid">
-              <button onClick={handleValidate}>校验</button>
-              <button onClick={() => editorRef.current?.expandAll()}>展开</button>
-              <button onClick={() => editorRef.current?.collapseAll()}>收起</button>
-            </div>
-          </section>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">编码</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-1.5">
+                <Label>输出类型</Label>
+                <Select
+                  value={modeChoice}
+                  onChange={(event) =>
+                    setModeChoice(event.target.value as ModeChoice)
+                  }
+                >
+                  <option value="auto">auto</option>
+                  <option value="v2">v2 save/global</option>
+                  <option value="config">config</option>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>槽位 ID</Label>
+                <Input
+                  value={saveId}
+                  onChange={(event) => setSaveId(event.target.value)}
+                  inputMode="numeric"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button variant="outline" onClick={handleValidate}>
+                  校验
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => editorRef.current?.expandAll()}
+                >
+                  展开
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => editorRef.current?.collapseAll()}
+                >
+                  收起
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-          {error && <section className="panel error-panel">{error}</section>}
+          {error && (
+            <Card className="border-destructive/20 bg-destructive/5">
+              <CardContent className="pt-6">
+                <p className="break-all text-sm text-destructive">{error}</p>
+              </CardContent>
+            </Card>
+          )}
         </aside>
 
-        <section className="editor-panel">
-          <div ref={editorHostRef} className="editor-host" />
-        </section>
+        <Card className="flex min-h-0 flex-col overflow-hidden">
+          <div ref={editorHostRef} className="flex-1" />
+        </Card>
       </main>
 
-      <input ref={saveFileRef} type="file" accept=".rpgsave,.txt" hidden onChange={(event) => void handleSaveLoad(event)} />
-      <input ref={jsonFileRef} type="file" accept=".json" hidden onChange={(event) => void handleJsonLoad(event)} />
+      <input
+        ref={saveFileRef}
+        type="file"
+        accept=".rpgsave,.txt"
+        hidden
+        onChange={(event) => void handleSaveLoad(event)}
+      />
+      <input
+        ref={jsonFileRef}
+        type="file"
+        accept=".json"
+        hidden
+        onChange={(event) => void handleJsonLoad(event)}
+      />
     </div>
   );
 }

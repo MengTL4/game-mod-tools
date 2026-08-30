@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@game-mod-tools/ui": "file:../../packages/ui",
     "jsoneditor": "^10.4.2",
     "lz-string": "^1.5.0",
     "pako": "^2.1.0",

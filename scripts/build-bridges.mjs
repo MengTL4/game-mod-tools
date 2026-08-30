@@ -1,0 +1,27 @@
+import { spawnSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+const steps = [
+  { cwd: path.join(root, "dq2_modkit", "runtime", "bridge"), cmd: "npm", args: ["run", "build"] },
+  { cwd: path.join(root, "nwr_modkit", "runtime", "bridge"), cmd: "npm", args: ["run", "build"] },
+  { cwd: path.join(root, "zs2_modkit", "tools"), cmd: "npm", args: ["run", "build-bridge"] },
+  { cwd: path.join(root, "zs2_modkit", "runtime", "bridge"), cmd: "npm", args: ["run", "build"] },
+];
+
+for (const step of steps) {
+  console.log(`\n> ${step.cmd} ${step.args.join(" ")} (in ${step.cwd})`);
+  const result = spawnSync(step.cmd, step.args, {
+    cwd: step.cwd,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
+  if (result.status !== 0) {
+    console.error(`Build failed in ${step.cwd}`);
+    process.exit(result.status ?? 1);
+  }
+}
+
+console.log("\nAll bridges built successfully.");

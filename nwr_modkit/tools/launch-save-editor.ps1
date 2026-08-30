@@ -7,6 +7,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$TsxCommand = Join-Path $PSScriptRoot "node_modules\.bin\tsx.cmd"
+if (-not (Test-Path -LiteralPath $TsxCommand)) {
+  $TsxCommand = (Get-Command tsx -ErrorAction Stop).Source
+}
+
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Editor = Join-Path $ProjectRoot "app\save-editor"
 $Modules = Join-Path $Editor "node_modules"
@@ -43,7 +48,7 @@ $errPath = Join-Path $ProjectRoot "output\save-editor-vite.err.log"
 New-Item -ItemType Directory -Path (Join-Path $ProjectRoot "output") -Force | Out-Null
 
 function Update-SaveEditorDataIndex {
-  $indexScript = Join-Path $ProjectRoot "tools\build-save-editor-index.mjs"
+  $indexScript = Join-Path $ProjectRoot "tools\build-save-editor-index.ts"
   $indexArgs = @($indexScript)
   if ($GameRoot) {
     $indexArgs += @("--game-root", $GameRoot)
@@ -51,7 +56,7 @@ function Update-SaveEditorDataIndex {
 
   try {
     Write-Host "Generating save editor data index"
-    & $nodeCommand @indexArgs
+    & $TsxCommand @indexArgs
     if ($LASTEXITCODE -ne 0) {
       Write-Warning "save editor data index generation failed with exit code $LASTEXITCODE; continuing without catalog names"
     }

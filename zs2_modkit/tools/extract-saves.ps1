@@ -9,9 +9,9 @@ $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $GameRoot = Resolve-Zs2GameRoot -ProjectRoot $ProjectRoot -GameRoot $GameRoot
 Set-Zs2RuntimeEnvironment -ProjectRoot $ProjectRoot -GameRoot $GameRoot
 
-& node (Join-Path $PSScriptRoot "extract-saves.mjs")
+& npx tsx (Join-Path $PSScriptRoot "extract-saves.ts")
 if ($LASTEXITCODE -ne 0) {
-  throw "extract-saves.mjs failed with exit code $LASTEXITCODE"
+  throw "extract-saves.ts failed with exit code $LASTEXITCODE"
 }
 
 $OutDir = Join-Path $ProjectRoot "output\extract\save"

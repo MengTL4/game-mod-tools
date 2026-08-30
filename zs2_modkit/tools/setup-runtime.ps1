@@ -128,9 +128,9 @@ foreach ($targetRel in $Targets) {
   }
 }
 
-& node (Join-Path $PSScriptRoot "extract-bytecode-bundles.mjs")
+& npx tsx (Join-Path $PSScriptRoot "extract-bytecode-bundles.ts")
 if ($LASTEXITCODE -ne 0) {
-  throw "extract-bytecode-bundles.mjs failed with exit code $LASTEXITCODE"
+  throw "extract-bytecode-bundles.ts failed with exit code $LASTEXITCODE"
 }
 
 Install-NodeDependencies -Directory $PSScriptRoot -Label "tools" -NpmRegistry $NpmRegistry

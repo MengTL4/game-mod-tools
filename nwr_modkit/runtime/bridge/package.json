@@ -1,0 +1,14 @@
+{
+  "name": "nwr-modkit-bridge",
+  "version": "0.1.0",
+  "description": "NW.js/Chrome extension runtime bridge sources",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

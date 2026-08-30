@@ -35,7 +35,8 @@ function Install-NodeDependencies {
   param(
     [string]$Directory,
     [string]$Label,
-    [string]$NpmRegistry
+    [string]$NpmRegistry,
+    [switch]$IncludeDev
   )
 
   $modules = Join-Path $Directory "node_modules"
@@ -60,10 +61,11 @@ function Install-NodeDependencies {
 
     $lastExitCode = 0
     $lastRegistry = $null
+    $installArgs = if ($IncludeDev) { @("install") } else { @("install", "--omit=dev") }
     foreach ($registry in $registries) {
       $lastRegistry = $registry
       Write-Host "Using npm registry: $registry"
-      & $npmCommand install --omit=dev --registry $registry
+      & $npmCommand @installArgs --registry $registry
       $lastExitCode = $LASTEXITCODE
       if ($lastExitCode -eq 0) { return }
       Write-Warning "$Label npm install failed with registry $registry, exit code $lastExitCode"
@@ -128,12 +130,17 @@ foreach ($targetRel in $Targets) {
   }
 }
 
-& node (Join-Path $PSScriptRoot "extract-bytecode-bundles.mjs")
-if ($LASTEXITCODE -ne 0) {
-  throw "extract-bytecode-bundles.mjs failed with exit code $LASTEXITCODE"
+Push-Location $PSScriptRoot
+try {
+  & npx tsx "extract-bytecode-bundles.ts"
+  if ($LASTEXITCODE -ne 0) {
+    throw "extract-bytecode-bundles.ts failed with exit code $LASTEXITCODE"
+  }
+} finally {
+  Pop-Location
 }
 
-Install-NodeDependencies -Directory $PSScriptRoot -Label "tools" -NpmRegistry $NpmRegistry
+Install-NodeDependencies -Directory $PSScriptRoot -Label "tools" -NpmRegistry $NpmRegistry -IncludeDev
 Install-NodeDependencies -Directory (Join-Path $ProjectRoot "runtime\save-harness") -Label "save-harness" -NpmRegistry $NpmRegistry
 
 Write-Host "Runtime links refreshed from $GameRoot"

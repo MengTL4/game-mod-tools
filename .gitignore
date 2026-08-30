@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+*.local
+*.log
+vite.config.ts.timestamp-*.mjs

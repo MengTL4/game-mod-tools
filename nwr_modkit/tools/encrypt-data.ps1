@@ -10,6 +10,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$TsxCommand = Join-Path $PSScriptRoot "node_modules\.bin\tsx.cmd"
+if (-not (Test-Path -LiteralPath $TsxCommand)) {
+  $TsxCommand = (Get-Command tsx -ErrorAction Stop).Source
+}
+
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 if (-not $InputDir) {
   $InputDir = Join-Path $ProjectRoot "output\extract\data"
@@ -19,7 +24,7 @@ if (-not $OutputDir) {
 }
 
 $ArgsList = @(
-  (Join-Path $PSScriptRoot "encrypt-data.mjs"),
+  (Join-Path $PSScriptRoot "encrypt-data.ts"),
   "--input", $InputDir,
   "--output", $OutputDir
 )
@@ -30,9 +35,9 @@ if ($Password) { $ArgsList += @("--password", $Password) }
 if ($Salt) { $ArgsList += @("--salt", $Salt) }
 if ($IvHex) { $ArgsList += @("--iv-hex", $IvHex) }
 
-& node @ArgsList
+& $TsxCommand @ArgsList
 if ($LASTEXITCODE -ne 0) {
-  throw "encrypt-data.mjs failed with exit code $LASTEXITCODE"
+  throw "encrypt-data.ts failed with exit code $LASTEXITCODE"
 }
 
 $OutFiles = Get-ChildItem -LiteralPath $OutputDir -Filter "*.json" | Where-Object { $_.Name -notlike "_*" }

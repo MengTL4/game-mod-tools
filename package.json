@@ -1,0 +1,37 @@
+{
+  "name": "game-mod-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "游戏 Mod / 存档工具 monorepo",
+  "workspaces": [
+    "packages/*",
+    "The-Stupendous-World-SaveEdit",
+    "The-Stupendous-World-SaveEditPro"
+  ],
+  "scripts": {
+    "ui:build": "npm run build -w packages/ui",
+    "ui:dev": "npm run dev -w packages/ui",
+    "build:web": "npm run build -w The-Stupendous-World-SaveEdit && npm run build -w The-Stupendous-World-SaveEditPro",
+    "build:save-editors": "npm run build --prefix zs2_modkit/app/save-editor && npm run build --prefix nwr_modkit/app/save-editor && npm run build --prefix dq2_modkit/app/save-editor",
+    "build:gui": "npm run build --prefix zs2_modkit/app/gui && npm run build --prefix nwr_modkit/app/gui && npm run build --prefix dq2_modkit/app/gui",
+    "build:bridge": "node scripts/build-bridges.mjs",
+    "build": "npm run ui:build && npm run build:web && npm run build:save-editors && npm run build:gui && npm run build:bridge"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.21",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "postcss": "^8.5.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^3.0.0",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.21",
+    "vite-plugin-dts": "^4.5.3"
+  }
+}

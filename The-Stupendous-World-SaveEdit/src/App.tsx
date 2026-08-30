@@ -2,6 +2,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import JSONEditor, { type JSONEditorOptions } from "jsoneditor";
 import "jsoneditor/dist/jsoneditor.css";
 import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  Separator,
+  Switch,
+  Textarea,
+} from "@game-mod-tools/ui";
+import {
   decodeSaveText,
   encodeSaveText,
   fromJsonFriendly,
@@ -36,7 +48,6 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [preserveAffix, setPreserveAffix] = useState(true);
   const [lastSaveName, setLastSaveName] = useState("file1.rpgsave");
-  const [lastJsonName, setLastJsonName] = useState("file1.json");
   const [parts, setParts] = useState<SaveTextParts | null>(null);
 
   const saveFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -110,7 +121,7 @@ function App() {
       const text = await file.text();
       const parsed = JSON.parse(text) as unknown;
       setEditorValue(parsed);
-      setLastJsonName(file.name);
+      setLastSaveName(file.name);
       setStatus(`已加载 JSON：${file.name}（${text.length.toLocaleString()} 字符）`);
       setError(null);
     } catch (cause) {
@@ -128,7 +139,6 @@ function App() {
       const friendly = toJsonFriendly(decoded.value);
       setEditorValue(friendly);
       setParts(decoded.parts);
-      setLastJsonName(outputJsonName);
       setStatus(
         `解密成功：payload ${decoded.parts.payload.length.toLocaleString()} 字符，` +
           `前缀 ${decoded.parts.prefix.length} 字符，后缀 ${decoded.parts.suffix.length} 字符。`
@@ -198,110 +208,162 @@ function App() {
   };
 
   return (
-    <div className="app">
-      <header className="header">
-        <h1>RPG 存档加解密 + JSON 树形编辑器</h1>
-        <p>
-          支持格式：<code>base64 -&gt; zlib -&gt; MessagePack</code>。JSON 编辑区支持节点逐级展开/收缩，适合处理大体积数据。
-          标记对象 <code>$binary</code>、<code>$ext</code>、<code>$map</code>、<code>$bigint</code> 可安全往返。
-        </p>
+    <div className="min-h-screen bg-background p-6 text-foreground">
+      <header className="mx-auto mb-6 max-w-7xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>RPG 存档加解密 + JSON 树形编辑器</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              支持格式：<code>base64 -&gt; zlib -&gt; MessagePack</code>。JSON 编辑区支持节点逐级展开/收缩，适合处理大体积数据。
+              标记对象 <code>$binary</code>、<code>$ext</code>、<code>$map</code>、<code>$bigint</code> 可安全往返。
+            </p>
+          </CardContent>
+        </Card>
       </header>
 
-      <section className="toolbar">
-        <button onClick={() => saveFileInputRef.current?.click()}>加载存档文件</button>
-        <button onClick={() => jsonFileInputRef.current?.click()}>加载 JSON 文件</button>
-        <button onClick={handleDecode}>解密存档 -&gt; JSON</button>
-        <button onClick={handleEncode}>加密 JSON -&gt; 存档</button>
-        <button onClick={handleValidateJson}>校验 JSON</button>
-        <button onClick={handleFormatJson}>规范化 JSON</button>
-        <button onClick={handleExpandAll}>展开全部</button>
-        <button onClick={handleCollapseAll}>收起全部</button>
-        <button
-          onClick={() => {
-            try {
-              const value = JSON.stringify(getEditorValue(), null, 2);
-              createDownload(value, lastJsonName || outputJsonName);
-            } catch (cause) {
-              const message = cause instanceof Error ? cause.message : String(cause);
-              setError(`导出 JSON 失败：${message}`);
-            }
-          }}
-        >
-          下载 JSON
-        </button>
-        <button
-          onClick={() => {
-            if (!saveOutput.trim()) {
-              setError("无法下载存档：加密输出为空。");
-              return;
-            }
-            createDownload(saveOutput, outputSaveName);
-          }}
-        >
-          下载存档
-        </button>
+      <main className="mx-auto max-w-7xl space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>工具栏</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button onClick={() => saveFileInputRef.current?.click()}>加载存档文件</Button>
+              <Button onClick={() => jsonFileInputRef.current?.click()}>加载 JSON 文件</Button>
+              <Button onClick={handleDecode}>解密存档 -&gt; JSON</Button>
+              <Button onClick={handleEncode}>加密 JSON -&gt; 存档</Button>
+              <Button onClick={handleValidateJson} variant="secondary">
+                校验 JSON
+              </Button>
+              <Button onClick={handleFormatJson} variant="secondary">
+                规范化 JSON
+              </Button>
+              <Button onClick={handleExpandAll} variant="secondary">
+                展开全部
+              </Button>
+              <Button onClick={handleCollapseAll} variant="secondary">
+                收起全部
+              </Button>
+              <Button
+                onClick={() => {
+                  try {
+                    const value = JSON.stringify(getEditorValue(), null, 2);
+                    createDownload(value, lastSaveName ? outputJsonName : "file.json");
+                  } catch (cause) {
+                    const message = cause instanceof Error ? cause.message : String(cause);
+                    setError(`导出 JSON 失败：${message}`);
+                  }
+                }}
+                variant="outline"
+              >
+                下载 JSON
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!saveOutput.trim()) {
+                    setError("无法下载存档：加密输出为空。");
+                    return;
+                  }
+                  createDownload(saveOutput, outputSaveName);
+                }}
+                variant="outline"
+              >
+                下载存档
+              </Button>
 
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={preserveAffix}
-            onChange={(event) => setPreserveAffix(event.target.checked)}
-          />
-          保留源存档前后缀
-        </label>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="preserve-affix"
+                  checked={preserveAffix}
+                  onChange={(event) => setPreserveAffix(event.target.checked)}
+                />
+                <Label htmlFor="preserve-affix">保留源存档前后缀</Label>
+              </div>
+            </div>
 
-        <input
-          ref={saveFileInputRef}
-          type="file"
-          accept=".rpgsave,.txt"
-          className="hidden"
-          onChange={handleSaveFileLoad}
-        />
-        <input
-          ref={jsonFileInputRef}
-          type="file"
-          accept=".json"
-          className="hidden"
-          onChange={handleJsonFileLoad}
-        />
-      </section>
+            <Input
+              ref={saveFileInputRef}
+              type="file"
+              accept=".rpgsave,.txt"
+              className="hidden"
+              onChange={handleSaveFileLoad}
+            />
+            <Input
+              ref={jsonFileInputRef}
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={handleJsonFileLoad}
+            />
+          </CardContent>
+        </Card>
 
-      <section className="status">
-        <div>
-          <strong>状态：</strong> {status}
+        <Card>
+          <CardHeader>
+            <CardTitle>状态</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-sm">
+              <div>
+                <span className="font-medium">状态：</span>
+                {status}
+              </div>
+              {parts && (
+                <div>
+                  <span className="font-medium">检测到前后缀：</span>前缀 {parts.prefix.length} 字符，后缀{" "}
+                  {parts.suffix.length} 字符
+                </div>
+              )}
+              {error && (
+                <div className="rounded-md bg-destructive/10 p-3 text-destructive">{error}</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card className="flex flex-col">
+            <CardHeader>
+              <CardTitle>加密存档输入</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+              <Textarea
+                value={saveInput}
+                onChange={(event) => setSaveInput(event.target.value)}
+                placeholder="在此粘贴 .rpgsave 文本（或点击按钮加载文件）"
+                className="min-h-[160px] font-mono text-sm"
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="flex flex-col">
+            <CardHeader>
+              <CardTitle>加密存档输出</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+              <Textarea
+                value={saveOutput}
+                onChange={(event) => setSaveOutput(event.target.value)}
+                placeholder="执行“加密 JSON -&gt; 存档”后，结果会显示在这里"
+                className="min-h-[160px] font-mono text-sm"
+              />
+            </CardContent>
+          </Card>
         </div>
-        {parts && (
-          <div>
-            <strong>检测到前后缀：</strong> 前缀 {parts.prefix.length} 字符，后缀 {parts.suffix.length} 字符
-          </div>
-        )}
-        {error && <div className="error">{error}</div>}
-      </section>
 
-      <section className="io-grid">
-        <div className="panel">
-          <h2>加密存档输入</h2>
-          <textarea
-            value={saveInput}
-            onChange={(event) => setSaveInput(event.target.value)}
-            placeholder="在此粘贴 .rpgsave 文本（或点击按钮加载文件）"
-          />
-        </div>
+        <Separator />
 
-        <div className="panel">
-          <h2>加密存档输出</h2>
-          <textarea
-            value={saveOutput}
-            onChange={(event) => setSaveOutput(event.target.value)}
-            placeholder="执行“加密 JSON -&gt; 存档”后，结果会显示在这里"
-          />
-        </div>
-      </section>
-
-      <section className="editor-panel">
-        <h2>解密 JSON 编辑区（树形，可逐节点展开/收缩）</h2>
-        <div className="jsoneditor-host" ref={editorHostRef} />
-      </section>
+        <Card>
+          <CardHeader>
+            <CardTitle>解密 JSON 编辑区（树形，可逐节点展开/收缩）</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div ref={editorHostRef} className="min-h-[400px] rounded-md border" />
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
 }

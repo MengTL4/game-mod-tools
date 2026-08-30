@@ -6,6 +6,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$TsxCommand = Join-Path $PSScriptRoot "node_modules\.bin\tsx.cmd"
+if (-not (Test-Path -LiteralPath $TsxCommand)) {
+  $TsxCommand = (Get-Command tsx -ErrorAction Stop).Source
+}
+
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 . (Join-Path $PSScriptRoot "modkit-config.ps1")
 
@@ -14,7 +19,7 @@ if (-not $OutputDir) {
 }
 
 $ArgsList = @(
-  (Join-Path $PSScriptRoot "extract-js-bytecode.mjs"),
+  (Join-Path $PSScriptRoot "extract-js-bytecode.ts"),
   "--output", $OutputDir
 )
 
@@ -26,9 +31,9 @@ if ($InputDir) {
   $ArgsList += @("--game-root", $GameRoot)
 }
 
-& node @ArgsList
+& $TsxCommand @ArgsList
 if ($LASTEXITCODE -ne 0) {
-  throw "extract-js-bytecode.mjs failed with exit code $LASTEXITCODE"
+  throw "extract-js-bytecode.ts failed with exit code $LASTEXITCODE"
 }
 
 Get-ChildItem -LiteralPath $OutputDir -Recurse -File |

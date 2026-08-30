@@ -2,12 +2,23 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import JSONEditor, { type JSONEditorOptions } from "jsoneditor";
 import "jsoneditor/dist/jsoneditor.css";
 import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  Select,
+  cn,
+} from "@game-mod-tools/ui";
+import {
   decodeSaveText,
   encodeSaveText,
   fromJsonFriendly,
   toJsonFriendly,
   type DecodedSave,
-  type SaveKind
+  type SaveKind,
 } from "./codec";
 
 type ModeChoice = "auto" | SaveKind;
@@ -68,7 +79,7 @@ export default function App() {
       mainMenuBar: true,
       navigationBar: true,
       statusBar: true,
-      onError: (value: Error) => setError(value.message)
+      onError: (value: Error) => setError(value.message),
     };
     const editor = new JSONEditor(editorHostRef.current, options, {});
     editorRef.current = editor;
@@ -183,65 +194,147 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
+    <div className="flex flex-col min-h-screen min-w-[980px] bg-background">
+      <header className="flex items-center justify-between px-6 py-4 border-b bg-card">
         <div>
-          <div className="eyebrow">OFFLINE SAVE FILE</div>
-          <h1>再刷一把2 存档编辑器</h1>
+          <div className="text-xs font-extrabold tracking-widest text-primary uppercase">
+            OFFLINE SAVE FILE
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-card-foreground">
+            再刷一把2 存档编辑器
+          </h1>
         </div>
-        <div className="top-actions">
-          <div className={error ? "status status-error" : "status"}>{status}</div>
-          <button className="primary" onClick={() => saveFileRef.current?.click()}>打开存档</button>
-          <button onClick={() => jsonFileRef.current?.click()}>打开 JSON</button>
-          <button onClick={handleExportJson}>导出 JSON</button>
-          <button onClick={() => void handleExportSave()}>导出存档</button>
+        <div className="flex items-center gap-3">
+          <div
+            className={cn(
+              "flex items-center justify-center px-4 py-1.5 rounded-full text-xs font-semibold border",
+              error
+                ? "bg-destructive/10 text-destructive border-destructive/20"
+                : "bg-primary/10 text-primary border-primary/20"
+            )}
+          >
+            {status}
+          </div>
+          <Button onClick={() => saveFileRef.current?.click()}>打开存档</Button>
+          <Button variant="secondary" onClick={() => jsonFileRef.current?.click()}>
+            打开 JSON
+          </Button>
+          <Button variant="secondary" onClick={handleExportJson}>
+            导出 JSON
+          </Button>
+          <Button onClick={() => void handleExportSave()}>导出存档</Button>
         </div>
       </header>
 
-      <main className="layout">
-        <aside className="side-panel">
-          <section className="panel">
-            <div className="panel-title">文件</div>
-            <dl className="meta-list">
-              <div><dt>存档</dt><dd>{loadedName}</dd></div>
-              <div><dt>类型</dt><dd>{decoded?.kind ?? "-"}</dd></div>
-              <div><dt>槽位</dt><dd>{decoded?.saveId ?? "-"}</dd></div>
-              <div><dt>Payload</dt><dd>{decoded ? decoded.payloadLength.toLocaleString() : "-"}</dd></div>
-              <div><dt>MsgPack</dt><dd>{decoded ? formatBytes(decoded.msgpackLength) : "-"}</dd></div>
-            </dl>
-          </section>
+      <main
+        className="grid flex-1 gap-4 p-4 min-h-0"
+        style={{ gridTemplateColumns: "328px minmax(0, 1fr)" }}
+      >
+        <aside className="flex flex-col gap-3 min-h-0 overflow-auto">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-primary">文件</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 text-sm">
+              <div className="grid gap-1">
+                <dt className="text-xs text-muted-foreground">存档</dt>
+                <dd className="font-mono break-all">{loadedName}</dd>
+              </div>
+              <div className="grid gap-1">
+                <dt className="text-xs text-muted-foreground">类型</dt>
+                <dd className="font-mono break-all">{decoded?.kind ?? "-"}</dd>
+              </div>
+              <div className="grid gap-1">
+                <dt className="text-xs text-muted-foreground">槽位</dt>
+                <dd className="font-mono break-all">{decoded?.saveId ?? "-"}</dd>
+              </div>
+              <div className="grid gap-1">
+                <dt className="text-xs text-muted-foreground">Payload</dt>
+                <dd className="font-mono break-all">
+                  {decoded ? decoded.payloadLength.toLocaleString() : "-"}
+                </dd>
+              </div>
+              <div className="grid gap-1">
+                <dt className="text-xs text-muted-foreground">MsgPack</dt>
+                <dd className="font-mono break-all">
+                  {decoded ? formatBytes(decoded.msgpackLength) : "-"}
+                </dd>
+              </div>
+            </CardContent>
+          </Card>
 
-          <section className="panel control-panel">
-            <div className="panel-title">编码</div>
-            <label>
-              <span>输出类型</span>
-              <select value={modeChoice} onChange={(event) => setModeChoice(event.target.value as ModeChoice)}>
-                <option value="auto">auto</option>
-                <option value="rpgsave">save/global</option>
-                <option value="config">config</option>
-              </select>
-            </label>
-            <label>
-              <span>槽位 ID</span>
-              <input value={saveId} onChange={(event) => setSaveId(event.target.value)} inputMode="numeric" />
-            </label>
-            <div className="button-grid">
-              <button onClick={handleValidate}>校验</button>
-              <button onClick={() => editorRef.current?.expandAll()}>展开</button>
-              <button onClick={() => editorRef.current?.collapseAll()}>收起</button>
-            </div>
-          </section>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-primary">编码</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <div className="grid gap-1.5">
+                <Label>输出类型</Label>
+                <Select
+                  value={modeChoice}
+                  onChange={(event) => setModeChoice(event.target.value as ModeChoice)}
+                >
+                  <option value="auto">auto</option>
+                  <option value="rpgsave">save/global</option>
+                  <option value="config">config</option>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label>槽位 ID</Label>
+                <Input
+                  value={saveId}
+                  onChange={(event) => setSaveId(event.target.value)}
+                  inputMode="numeric"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button variant="outline" onClick={handleValidate}>
+                  校验
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => editorRef.current?.expandAll()}
+                >
+                  展开
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => editorRef.current?.collapseAll()}
+                >
+                  收起
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-          {error && <section className="panel error-panel">{error}</section>}
+          {error && (
+            <Card className="border-destructive/30 bg-destructive/10">
+              <CardContent className="py-4 text-sm text-destructive break-all">
+                {error}
+              </CardContent>
+            </Card>
+          )}
         </aside>
 
-        <section className="editor-panel">
-          <div ref={editorHostRef} className="editor-host" />
-        </section>
+        <Card className="flex flex-col overflow-hidden p-0">
+          <div ref={editorHostRef} className="flex-1" />
+        </Card>
       </main>
 
-      <input ref={saveFileRef} type="file" accept=".rpgsave,.txt" hidden onChange={(event) => void handleSaveLoad(event)} />
-      <input ref={jsonFileRef} type="file" accept=".json" hidden onChange={(event) => void handleJsonLoad(event)} />
+      <input
+        ref={saveFileRef}
+        type="file"
+        accept=".rpgsave,.txt"
+        hidden
+        onChange={(event) => void handleSaveLoad(event)}
+      />
+      <input
+        ref={jsonFileRef}
+        type="file"
+        accept=".json"
+        hidden
+        onChange={(event) => void handleJsonLoad(event)}
+      />
     </div>
   );
 }

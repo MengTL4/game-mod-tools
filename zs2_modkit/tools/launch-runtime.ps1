@@ -14,7 +14,7 @@ $BridgeOutput = Join-Path $ProjectRoot "runtime\bridge\page-bridge.js"
 $GameExe = Join-Path $GameRoot "Game.exe"
 
 function Invoke-BridgeBuildIfNeeded {
-  $sourceFiles = @(Get-ChildItem -LiteralPath $BridgeSourceDir -Recurse -File -Filter "*.js" -ErrorAction SilentlyContinue)
+  $sourceFiles = @(Get-ChildItem -LiteralPath $BridgeSourceDir -Recurse -File -Filter "*.ts" -ErrorAction SilentlyContinue)
   if (-not $sourceFiles.Count) { return }
   $needsBuild = -not (Test-Path -LiteralPath $BridgeOutput)
   if (-not $needsBuild) {
@@ -23,8 +23,8 @@ function Invoke-BridgeBuildIfNeeded {
   }
   if (-not $needsBuild) { return }
 
-  & node (Join-Path $PSScriptRoot "build-bridge.mjs")
-  if ($LASTEXITCODE -ne 0) { throw "build-bridge.mjs failed with exit code $LASTEXITCODE" }
+  & npx tsx (Join-Path $PSScriptRoot "build-bridge.ts")
+  if ($LASTEXITCODE -ne 0) { throw "build-bridge.ts failed with exit code $LASTEXITCODE" }
 }
 
 if (-not (Test-Path -LiteralPath $GameExe)) {

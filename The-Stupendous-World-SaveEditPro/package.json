@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@game-mod-tools/ui": "file:../packages/ui",
     "@msgpack/msgpack": "^3.0.0",
     "pako": "^2.1.0",
     "react": "^18.3.1",

@@ -16,7 +16,7 @@ if (-not $OutputDir) {
 }
 
 $ArgsList = @(
-  (Join-Path $PSScriptRoot "encrypt-saves.mjs"),
+  (Join-Path $PSScriptRoot "encrypt-saves.ts"),
   "--input", $InputDir,
   "--output", $OutputDir
 )
@@ -29,10 +29,10 @@ if ($NoConfig) {
   $ArgsList += "--no-config"
 }
 
-& node @ArgsList
+& npx tsx @ArgsList
 
 if ($LASTEXITCODE -ne 0) {
-  throw "encrypt-saves.mjs failed with exit code $LASTEXITCODE"
+  throw "encrypt-saves.ts failed with exit code $LASTEXITCODE"
 }
 
 Get-ChildItem -LiteralPath $OutputDir | Select-Object Name, Length

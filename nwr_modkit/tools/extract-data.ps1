@@ -10,6 +10,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$TsxCommand = Join-Path $PSScriptRoot "node_modules\.bin\tsx.cmd"
+if (-not (Test-Path -LiteralPath $TsxCommand)) {
+  $TsxCommand = (Get-Command tsx -ErrorAction Stop).Source
+}
+
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 . (Join-Path $PSScriptRoot "modkit-config.ps1")
 
@@ -18,7 +23,7 @@ if (-not $OutputDir) {
 }
 
 $ArgsList = @(
-  (Join-Path $PSScriptRoot "extract-data.mjs"),
+  (Join-Path $PSScriptRoot "extract-data.ts"),
   "--output", $OutputDir
 )
 
@@ -35,9 +40,9 @@ if ($Password) { $ArgsList += @("--password", $Password) }
 if ($Salt) { $ArgsList += @("--salt", $Salt) }
 if ($IvHex) { $ArgsList += @("--iv-hex", $IvHex) }
 
-& node @ArgsList
+& $TsxCommand @ArgsList
 if ($LASTEXITCODE -ne 0) {
-  throw "extract-data.mjs failed with exit code $LASTEXITCODE"
+  throw "extract-data.ts failed with exit code $LASTEXITCODE"
 }
 
 $Files = Get-ChildItem -LiteralPath $OutputDir -Filter "*.json" | Where-Object { $_.Name -notlike "_*" }
