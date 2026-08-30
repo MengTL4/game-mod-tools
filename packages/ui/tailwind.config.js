@@ -3,11 +3,11 @@ export default {
   darkMode: ["class"],
   content: [
     "./src/**/*.{ts,tsx}",
-    "../../zs2_modkit/app/**/*.{ts,tsx,html}",
-    "../../nwr_modkit/app/**/*.{ts,tsx,html}",
-    "../../dq2_modkit/app/**/*.{ts,tsx,html}",
-    "../../The-Stupendous-World-SaveEdit/src/**/*.{ts,tsx,html}",
-    "../../The-Stupendous-World-SaveEditPro/src/**/*.{ts,tsx,html}",
+    "../../zs2-modkit/app/**/*.{ts,tsx,html}",
+    "../../nwr-modkit/app/**/*.{ts,tsx,html}",
+    "../../dq2-modkit/app/**/*.{ts,tsx,html}",
+    "../../tsw-save-edit/src/**/*.{ts,tsx,html}",
+    "../../tsw-save-editPro/src/**/*.{ts,tsx,html}",
     "!../../**/node_modules",
   ],
   theme: {

@@ -1,0 +1,42 @@
+{
+  "name": "codex-trainer-gui",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.html",
+  "nodejs": true,
+  "node-remote": "<all_urls>",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@rpgmv-modkit/ui": "file:../../../packages/ui",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "rpgmv-modkit": "file:../../.."
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.29",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.21"
+  },
+  "window": {
+    "title": "大千世界2 修改器",
+    "width": 1120,
+    "height": 760,
+    "min_width": 980,
+    "min_height": 660,
+    "position": "center",
+    "show": true,
+    "frame": true
+  },
+  "chromium-args": "--force-color-profile=srgb --allow-file-access-from-files"
+}

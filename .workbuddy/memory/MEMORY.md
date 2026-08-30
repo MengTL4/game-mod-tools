@@ -4,7 +4,7 @@
 
 - 根目录使用 `npm install && npm run build` 构建全部产物。
 - `runtime/bridge` 构建通过 `scripts/build-bridges.mjs` 顺序执行，避免 npm `--prefix` 段错误。
-- zs2 runtime/bridge 的 `page-bridge.js` 由 `zs2_modkit/tools/build-bridge.ts` 从 `src/parts/` 合并生成，不直接走 tsc。
+- zs2 runtime/bridge 的 `page-bridge.js` 由 `zs2-modkit/tools/build-bridge.ts` 从 `src/parts/` 合并生成，不直接走 tsc。
 
 ## 类型约定
 

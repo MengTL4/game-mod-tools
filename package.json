@@ -1,19 +1,19 @@
 {
-  "name": "game-mod-tools",
+  "name": "rpgmv-modkit",
   "version": "1.0.0",
   "private": true,
-  "description": "游戏 Mod / 存档工具 monorepo",
+  "description": "Modkit monorepo for RPG Maker MV/MZ games: runtime trainers, save editors, data codecs, and shared UI components.",
   "workspaces": [
     "packages/*",
-    "The-Stupendous-World-SaveEdit",
-    "The-Stupendous-World-SaveEditPro"
+    "tsw-save-edit",
+    "tsw-save-edit-pro"
   ],
   "scripts": {
     "ui:build": "npm run build -w packages/ui",
     "ui:dev": "npm run dev -w packages/ui",
-    "build:web": "npm run build -w The-Stupendous-World-SaveEdit && npm run build -w The-Stupendous-World-SaveEditPro",
-    "build:save-editors": "npm run build --prefix zs2_modkit/app/save-editor && npm run build --prefix nwr_modkit/app/save-editor && npm run build --prefix dq2_modkit/app/save-editor",
-    "build:gui": "npm run build --prefix zs2_modkit/app/gui && npm run build --prefix nwr_modkit/app/gui && npm run build --prefix dq2_modkit/app/gui",
+    "build:web": "npm run build -w tsw-save-edit && npm run build -w tsw-save-edit-pro",
+    "build:save-editors": "npm run build --prefix zs2-modkit/app/save-editor && npm run build --prefix nwr-modkit/app/save-editor && npm run build --prefix dq2-modkit/app/save-editor",
+    "build:gui": "npm run build --prefix zs2-modkit/app/gui && npm run build --prefix nwr-modkit/app/gui && npm run build --prefix dq2-modkit/app/gui",
     "build:bridge": "node scripts/build-bridges.mjs",
     "build": "npm run ui:build && npm run build:web && npm run build:save-editors && npm run build:gui && npm run build:bridge"
   },

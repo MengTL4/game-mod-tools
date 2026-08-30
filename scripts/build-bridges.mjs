@@ -5,10 +5,10 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const steps = [
-  { cwd: path.join(root, "dq2_modkit", "runtime", "bridge"), cmd: "npm", args: ["run", "build"] },
-  { cwd: path.join(root, "nwr_modkit", "runtime", "bridge"), cmd: "npm", args: ["run", "build"] },
-  { cwd: path.join(root, "zs2_modkit", "tools"), cmd: "npm", args: ["run", "build-bridge"] },
-  { cwd: path.join(root, "zs2_modkit", "runtime", "bridge"), cmd: "npm", args: ["run", "build"] },
+  { cwd: path.join(root, "dq2-modkit", "runtime", "bridge"), cmd: "npm", args: ["run", "build"] },
+  { cwd: path.join(root, "nwr-modkit", "runtime", "bridge"), cmd: "npm", args: ["run", "build"] },
+  { cwd: path.join(root, "zs2-modkit", "tools"), cmd: "npm", args: ["run", "build-bridge"] },
+  { cwd: path.join(root, "zs2-modkit", "runtime", "bridge"), cmd: "npm", args: ["run", "build"] },
 ];
 
 for (const step of steps) {

@@ -1,5 +1,5 @@
 {
-  "name": "@game-mod-tools/ui",
+  "name": "@rpgmv-modkit/ui",
   "version": "0.1.0",
   "private": true,
   "type": "module",
