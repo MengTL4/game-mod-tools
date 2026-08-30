@@ -1,0 +1,32 @@
+      <aside class="sidebar">
+        <section class="panel status-panel command-card">
+          <div class="panel-title">运行状态</div>
+          <dl class="state-list command-state-list">
+            <div><dt>Bridge</dt><dd id="bridgeState">等待中</dd></div>
+            <div><dt>队伍对象</dt><dd id="partyState">-</dd></div>
+            <div><dt>当前金币</dt><dd id="goldState">-</dd></div>
+            <div><dt>存档目录</dt><dd id="saveState">-</dd></div>
+            <div><dt>当前位置</dt><dd id="mapState">-</dd></div>
+          </dl>
+        </section>
+
+        <section class="panel party-panel command-card">
+          <div class="panel-title">队伍</div>
+          <ul id="partyMembers"></ul>
+        </section>
+
+        <section class="panel command-card file-actions-panel">
+          <div class="panel-title">文件</div>
+          <div class="button-stack">
+            <button id="openBridgeBtn">打开 Bridge 日志</button>
+            <button id="openSaveBtn">打开存档目录</button>
+            <button id="backupSaveBtn" class="warning">备份存档</button>
+            <button id="clearEventsBtn" class="danger">清空事件</button>
+          </div>
+        </section>
+
+        <section class="panel save-files command-card">
+          <div class="panel-title">检测到的存档</div>
+          <ul id="saveFiles"></ul>
+        </section>
+      </aside>

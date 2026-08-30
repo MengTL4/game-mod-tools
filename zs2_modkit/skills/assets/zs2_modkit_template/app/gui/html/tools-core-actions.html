@@ -1,0 +1,67 @@
+          <article class="panel tool-panel" data-tool-panel="core" data-tool-section="rate" data-tool-label="倍率">
+            <div class="panel-title">倍率</div>
+            <div class="row rates-row">
+              <label>
+                <span>经验</span>
+                <input id="expRate" type="number" min="0" step="0.1" value="1">
+              </label>
+              <label>
+                <span>金币</span>
+                <input id="goldRate" type="number" min="0" step="0.1" value="1">
+              </label>
+              <label>
+                <span>掉率</span>
+                <input id="dropRate" type="number" min="0" step="0.1" value="1">
+              </label>
+              <button id="ratesApplyBtn">应用</button>
+            </div>
+            <div class="preset-row rate-presets">
+              <button data-rate="5">5x</button>
+              <button data-rate="10">10x</button>
+              <button data-rate="20">20x</button>
+              <button data-rate="50">50x</button>
+              <button data-rate="100">100x</button>
+              <button data-rate="1">重置</button>
+            </div>
+          </article>
+
+          <article class="panel tool-panel" data-tool-panel="core" data-tool-section="battle" data-tool-label="战斗">
+            <div class="panel-title">战斗</div>
+            <div class="battle-switches">
+              <button id="noCostBtn" class="toggle-btn">技能无耗</button>
+              <button id="oneHitKillBtn" class="toggle-btn">一击秒杀</button>
+              <button id="invincibleBtn" class="toggle-btn">无敌</button>
+              <button id="battleKillBtn" class="danger">秒杀敌人</button>
+              <button id="battleEscapeBtn" class="warning">逃跑</button>
+              <button id="partyRecoverBtn" class="primary">队伍恢复</button>
+            </div>
+            <div class="row compact-id-row">
+              <label>
+                <span>敌群ID</span>
+                <input id="battleTroopId" type="text" inputmode="numeric" list="offlineHuntTroopOptions" placeholder="空=变量399">
+              </label>
+              <button id="battleStartBtn" class="warning">指定战斗</button>
+            </div>
+            <div id="battleTroopHint" class="hint"></div>
+            <div id="battleState" class="hint"></div>
+          </article>
+
+          <article class="panel tool-panel" data-tool-panel="core" data-tool-section="save" data-tool-label="存档">
+            <div class="panel-title">存档</div>
+            <div class="row">
+              <label>
+                <span>槽位</span>
+                <input id="saveSlot" type="number" min="1" step="1" value="1">
+              </label>
+              <button id="saveGameBtn" class="primary">保存</button>
+              <button id="titleRefreshBtn">刷新标题</button>
+            </div>
+          </article>
+
+          <article class="panel tool-panel" data-tool-panel="debug" data-tool-section="command" data-tool-label="自定义命令">
+            <div class="panel-title">自定义命令</div>
+            <textarea id="customCommand" spellcheck="false">{ "type": "ping" }</textarea>
+            <div class="row">
+              <button id="customSendBtn" class="warning">发送 JSON</button>
+            </div>
+          </article>

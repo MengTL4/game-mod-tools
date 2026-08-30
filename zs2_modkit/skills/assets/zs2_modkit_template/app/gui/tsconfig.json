@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "none",
+    "lib": ["ES2020", "DOM"],
+    "types": ["node"],
+    "strict": false,
+    "noImplicitAny": false,
+    "noEmitOnError": true,
+    "skipLibCheck": true,
+    "outFile": "app.js"
+  },
+  "files": [
+    "src/config.ts",
+    "src/format.ts",
+    "src/paths.ts",
+    "src/dom.ts",
+    "src/bridge-client.ts",
+    "src/catalogs.ts",
+    "src/icon-renderer.ts",
+    "src/catalog-view.ts",
+    "src/catalog-renderers.ts",
+    "src/offline-hunt-view.ts",
+    "src/bindings.ts",
+    "src/main.ts",
+    "app.ts"
+  ]
+}

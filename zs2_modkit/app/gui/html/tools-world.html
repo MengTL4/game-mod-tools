@@ -1,0 +1,62 @@
+          <article class="panel tool-panel browser-panel wide-panel compact-browser" data-tool-panel="world" data-tool-section="map" data-tool-label="地图传送">
+            <div class="panel-title">地图传送 <span id="mapListCount" class="panel-count"></span></div>
+            <div class="row browser-search-row">
+              <input id="mapSearch" type="search" placeholder="搜索地图名称或ID">
+            </div>
+            <div class="row map-row">
+              <label>
+                <span>地图ID</span>
+                <input id="mapId" type="text" inputmode="numeric" list="mapOptions" value="5">
+              </label>
+              <label>
+                <span>X</span>
+                <input id="mapX" type="number" step="1" value="10">
+              </label>
+              <label>
+                <span>Y</span>
+                <input id="mapY" type="number" step="1" value="10">
+              </label>
+              <label>
+                <span>朝向</span>
+                <select id="mapDirection">
+                  <option value="2">下</option>
+                  <option value="4">左</option>
+                  <option value="6">右</option>
+                  <option value="8">上</option>
+                </select>
+              </label>
+              <label>
+                <span>淡入</span>
+                <select id="mapFade">
+                  <option value="0">黑</option>
+                  <option value="1">白</option>
+                  <option value="2">无</option>
+                </select>
+              </label>
+              <button id="mapTransferBtn">传送</button>
+            </div>
+            <div class="preset-row map-actions">
+              <button id="recordPositionBtn">记录当前位置</button>
+              <button id="returnPositionBtn">返回记录点</button>
+              <button id="mapThroughBtn" class="toggle-btn">穿墙</button>
+              <span id="recordedPosition" class="inline-status">未记录</span>
+            </div>
+            <div id="mapHint" class="hint"></div>
+            <div id="mapList" class="catalog-list system-list"></div>
+          </article>
+
+          <article class="panel tool-panel browser-panel wide-panel compact-browser" data-tool-panel="world" data-tool-section="commonEvent" data-tool-label="公共事件">
+            <div class="panel-title">公共事件 <span id="commonEventListCount" class="panel-count"></span></div>
+            <div class="row browser-search-row">
+              <input id="commonEventSearch" type="search" placeholder="搜索公共事件名称或ID">
+            </div>
+            <div class="row compact-id-row">
+              <label>
+                <span>事件ID</span>
+                <input id="commonEventId" type="text" inputmode="numeric" list="commonEventOptions" value="1">
+              </label>
+              <button id="commonEventRunBtn">运行事件</button>
+            </div>
+            <div id="commonEventHint" class="hint"></div>
+            <div id="commonEventList" class="catalog-list system-list"></div>
+          </article>

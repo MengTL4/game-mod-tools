@@ -1,0 +1,4 @@
+interface:
+  display_name: "ZS2 Modkit Builder"
+  short_description: "从零复刻本地 NW/RPGMaker 修改器完整项目流程"
+  default_prompt: "Use $zs2-modkit-builder to rebuild the local ZS2 NW/RPG Maker modkit from scratch."

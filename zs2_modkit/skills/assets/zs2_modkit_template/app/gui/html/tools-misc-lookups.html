@@ -1,0 +1,39 @@
+          <article class="panel tool-panel browser-panel wide-panel compact-browser" data-tool-panel="misc" data-tool-section="variable" data-tool-label="变量">
+            <div class="panel-title">变量 <span id="variableListCount" class="panel-count"></span></div>
+            <div class="row browser-search-row">
+              <input id="variableSearch" type="search" placeholder="搜索变量名称或ID">
+            </div>
+            <div class="row three">
+              <label>
+                <span>ID</span>
+                <input id="variableId" type="text" inputmode="numeric" list="variableOptions" value="1">
+              </label>
+              <label>
+                <span>值</span>
+                <input id="variableValue" type="text" value="999">
+              </label>
+              <button id="variableSetBtn">写入</button>
+            </div>
+            <div id="variableHint" class="hint"></div>
+            <div id="variableList" class="catalog-list system-list"></div>
+          </article>
+
+          <article class="panel tool-panel browser-panel wide-panel compact-browser" data-tool-panel="misc" data-tool-section="switch" data-tool-label="开关">
+            <div class="panel-title">开关 <span id="switchListCount" class="panel-count"></span></div>
+            <div class="row browser-search-row">
+              <input id="switchSearch" type="search" placeholder="搜索开关名称或ID">
+            </div>
+            <div class="row three">
+              <label>
+                <span>ID</span>
+                <input id="switchId" type="text" inputmode="numeric" list="switchOptions" value="1">
+              </label>
+              <div class="segmented" role="group">
+                <button id="switchOnBtn" class="segment active">ON</button>
+                <button id="switchOffBtn" class="segment">OFF</button>
+              </div>
+              <button id="switchSetBtn">写入</button>
+            </div>
+            <div id="switchHint" class="hint"></div>
+            <div id="switchList" class="catalog-list system-list"></div>
+          </article>

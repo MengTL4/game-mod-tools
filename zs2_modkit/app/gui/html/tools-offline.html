@@ -1,0 +1,97 @@
+          <article class="panel tool-panel wide-panel" data-tool-panel="offline" data-tool-section="map troop" data-tool-section-nav="false">
+            <div class="panel-title">脱机挂机</div>
+            <div class="metric" id="offlineHuntMetric">0</div>
+            <div class="row offline-hunt-row" data-offline-mode-panel="map">
+              <label>
+                <span>地图</span>
+                <input id="offlineHuntMapId" type="text" inputmode="numeric" list="offlineHuntMapOptions" value="31">
+              </label>
+              <label>
+                <span>次数</span>
+                <input id="offlineHuntMapTimes" type="number" min="1" max="5000" step="1" value="10">
+              </label>
+              <label>
+                <span>区域</span>
+                <input id="offlineHuntRegionId" type="number" min="0" step="1" placeholder="空">
+              </label>
+              <button id="offlineHuntPreviewBtn">预览</button>
+              <button id="offlineHuntRunBtn" class="primary">执行</button>
+            </div>
+            <div class="row offline-hunt-row troop-mode-row" data-offline-mode-panel="troop" hidden>
+              <label>
+                <span>敌群</span>
+                <input id="offlineHuntTroopId" type="text" inputmode="numeric" list="offlineHuntTroopOptions" placeholder="选择敌群">
+              </label>
+              <label>
+                <span>次数</span>
+                <input id="offlineHuntTroopTimes" type="number" min="1" max="5000" step="1" value="10">
+              </label>
+              <button id="offlineHuntPreviewTroopBtn">预览</button>
+              <button id="offlineHuntRunTroopBtn" class="primary">执行</button>
+            </div>
+            <div class="preset-row offline-hunt-presets">
+              <button data-offline-hunt-times="10">10次</button>
+              <button data-offline-hunt-times="50">50次</button>
+              <button data-offline-hunt-times="100">100次</button>
+              <button data-offline-hunt-times="500">500次</button>
+              <button data-offline-hunt-times="1000">1000次</button>
+              <button id="offlineHuntClearTroopBtn">按地图随机</button>
+            </div>
+            <div class="offline-hunt-options">
+              <label class="check-line"><input id="offlineHuntEnemyBook" type="checkbox" checked> 解锁图鉴</label>
+              <label class="check-line"><input id="offlineHuntRecover" type="checkbox" checked> 结束恢复</label>
+              <label class="check-line"><input id="offlineHuntSave" type="checkbox"> 保存</label>
+              <label class="save-slot-line">
+                <span>槽位</span>
+                <input id="offlineHuntSaveSlot" type="number" min="1" step="1" value="1">
+              </label>
+            </div>
+            <div class="offline-loot-options">
+              <div>
+                <span class="option-title">自动卖出装备</span>
+                <div class="quality-toggle-grid">
+                  <label class="check-line"><input id="offlineAutoSellGray" type="checkbox"> 灰</label>
+                  <label class="check-line"><input id="offlineAutoSellWhite" type="checkbox"> 白</label>
+                  <label class="check-line"><input id="offlineAutoSellGreen" type="checkbox"> 绿</label>
+                  <label class="check-line"><input id="offlineAutoSellBlue" type="checkbox"> 蓝</label>
+                  <label class="check-line"><input id="offlineAutoSellPurple" type="checkbox"> 紫</label>
+                </div>
+              </div>
+              <div>
+                <span class="option-title">屏蔽掉落装备</span>
+                <div class="quality-toggle-grid">
+                  <label class="check-line"><input id="offlineBlockWhite" type="checkbox"> 白</label>
+                  <label class="check-line"><input id="offlineBlockGreen" type="checkbox"> 绿</label>
+                  <label class="check-line"><input id="offlineBlockBlue" type="checkbox"> 蓝</label>
+                </div>
+              </div>
+            </div>
+            <div id="offlineHuntMapHint" class="hint"></div>
+            <div id="offlineHuntTroopHint" class="hint"></div>
+            <div id="offlineHuntState" class="hint"></div>
+            <div id="offlineHuntResult" class="offline-result"></div>
+          </article>
+
+          <article class="panel tool-panel browser-panel wide-panel compact-browser" data-tool-panel="offline" data-tool-section="map" data-tool-label="地图挂机" data-offline-mode-panel="map">
+            <div class="panel-title">挂机地图 <span id="offlineHuntMapListCount" class="panel-count"></span></div>
+            <div class="row browser-search-row">
+              <input id="offlineHuntMapSearch" type="search" placeholder="搜索地图、敌群或区域">
+            </div>
+            <div id="offlineHuntMapList" class="catalog-list system-list"></div>
+          </article>
+
+          <article class="panel tool-panel browser-panel wide-panel compact-browser" data-tool-panel="offline" data-tool-section="troop" data-tool-label="敌群挂机" data-offline-mode-panel="troop" hidden>
+            <div class="panel-title">敌群挂机 <span id="offlineHuntTroopListCount" class="panel-count"></span></div>
+            <div class="row browser-search-row">
+              <input id="offlineHuntTroopSearch" type="search" placeholder="搜索敌群、怪物、精英、首领、领主、掉落">
+            </div>
+            <div id="offlineHuntTroopList" class="catalog-list system-list"></div>
+          </article>
+
+          <article class="panel tool-panel wide-panel" data-tool-panel="misc" data-tool-section="enemyBook" data-tool-label="敌人图鉴">
+            <div class="panel-title">敌人图鉴</div>
+            <div class="unlock-grid">
+              <button id="unlockEnemyBookBtn">解锁敌人图鉴</button>
+            </div>
+            <div class="hint">写入配置数据后会调用游戏的配置保存；需要回到图鉴菜单重新打开查看。</div>
+          </article>

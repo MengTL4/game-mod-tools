@@ -1,0 +1,79 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Codex Trainer Launcher</title>
+<script>
+(function () {
+  const fs = require("fs");
+  const path = require("path");
+  const projectRoot = path.resolve(process.cwd(), "..", "..");
+  const root = resolveGameRoot(projectRoot);
+  process.env.ZS2_MODKIT_ROOT = projectRoot;
+  process.env.ZS2_GAME_ROOT = root;
+  const logDir = path.join(projectRoot, "runtime", "bridge-state");
+  fs.mkdirSync(logDir, { recursive: true });
+  const logPath = path.join(logDir, "launcher.log");
+
+  function resolveGameRoot(projectRoot) {
+    const candidates = [];
+    if (process.env.ZS2_GAME_ROOT) candidates.push(process.env.ZS2_GAME_ROOT);
+    try {
+      const configPath = path.join(projectRoot, "config.local.json");
+      if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+        if (config && config.gameRoot) candidates.push(String(config.gameRoot));
+      }
+    } catch (error) {
+      throw new Error("Invalid config.local.json: " + (error && error.message || error));
+    }
+    candidates.push(path.resolve(projectRoot, ".."));
+
+    for (const candidate of candidates) {
+      const fullPath = path.resolve(projectRoot, expandEnv(candidate));
+      if (fs.existsSync(path.join(fullPath, "www", "index.html"))) {
+        return fs.realpathSync(fullPath);
+      }
+    }
+    throw new Error("Game root not found. Set ZS2_GAME_ROOT or create config.local.json.");
+  }
+
+  function expandEnv(value) {
+    return String(value).replace(/%([^%]+)%|\$\{([^}]+)\}/g, function (match, winName, posixName) {
+      const name = winName || posixName;
+      return process.env[name] || match;
+    });
+  }
+
+  function log(message, extra) {
+    fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${message}${extra ? " " + JSON.stringify(extra) : ""}\n`, "utf8");
+  }
+
+  try {
+    process.chdir(root);
+    const gameIndex = path.join(root, "www", "index.html");
+    const bridgeScript = path.join(projectRoot, "runtime", "bridge", "page-bridge.js");
+    const gameUrl = "file:///" + gameIndex.replace(/\\/g, "/");
+    log("opening game", { root, gameUrl, bridgeScript });
+    nw.Window.open(gameUrl, {
+      title: "再刷一把2",
+      width: 1280,
+      height: 720,
+      show: true,
+      frame: true,
+      position: "center",
+      inject_js_start: bridgeScript
+    }, function (win) {
+      log("game window opened");
+      try {
+        nw.Window.get().hide();
+      } catch (_) {}
+      win.on("closed", function () {
+        log("game window closed");
+        nw.App.quit();
+      });
+    });
+  } catch (error) {
+    log("launcher failed", { error: String(error && error.stack || error) });
+    throw error;
+  }
+})();
+</script>

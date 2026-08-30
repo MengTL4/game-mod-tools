@@ -1,0 +1,255 @@
+@media (max-width: 1180px) {
+  .layout {
+    grid-template-columns: 286px minmax(0, 1fr);
+  }
+
+  .tool-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .row.map-row,
+  .row.rates-row,
+  .row.vitals-row,
+  .row.talent-point-row,
+  .row.title-toolbar,
+  .row.costume-toolbar,
+  .row.offline-hunt-row,
+  .row.troop-mode-row,
+  .row.item-toolbar,
+  .row.item-row,
+  .row.actor-row,
+  .row.actor-browser-row,
+  .row.skill-row,
+  .row.skill-toolbar,
+  .row.param-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+body.page-scroll-mode {
+  overflow: auto;
+  scroll-padding-top: calc(var(--topbar-sticky-offset) + var(--tool-nav-sticky-height) + var(--section-nav-sticky-height) + var(--chrome-gap));
+}
+
+body.page-scroll-mode .shell {
+  height: auto;
+  min-height: 100%;
+}
+
+body.page-scroll-mode .layout {
+  grid-template-columns: 1fr;
+  align-items: start;
+  overflow: visible;
+}
+
+body.page-scroll-mode .sidebar {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  grid-template-rows: auto;
+  align-items: start;
+  overflow: visible;
+}
+
+body.page-scroll-mode .workspace {
+  grid-template-rows: auto auto auto auto;
+  overflow: visible;
+}
+
+body.page-scroll-mode .tool-nav {
+  position: sticky;
+  top: var(--topbar-sticky-offset);
+  z-index: 7;
+}
+
+body.page-scroll-mode .tool-section-nav {
+  position: sticky;
+  top: calc(var(--topbar-sticky-offset) + var(--tool-nav-sticky-height) + 6px);
+  z-index: 6;
+}
+
+body.page-scroll-mode .tool-grid {
+  overflow: visible;
+  padding-right: 0;
+}
+
+body.page-scroll-mode .event-panel {
+  overflow: visible;
+}
+
+body.page-scroll-mode .event-list {
+  max-height: 260px;
+}
+
+body.page-scroll-mode .save-files ul,
+body.page-scroll-mode .party-panel ul {
+  max-height: 220px;
+}
+
+@media (max-width: 980px), (max-height: 760px) {
+  body {
+    overflow: auto;
+  }
+
+  .shell {
+    height: auto;
+    min-height: 100%;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .sidebar {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    grid-template-rows: auto;
+    align-items: start;
+  }
+
+  .workspace {
+    grid-template-rows: auto auto auto auto;
+    overflow: visible;
+  }
+
+  .tool-grid {
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .event-panel {
+    overflow: visible;
+  }
+
+  .event-list {
+    max-height: 260px;
+  }
+}
+
+body.zoom-scroll-mode {
+  --chrome-gap: clamp(8px, 1vw, 12px);
+  --panel-pad: clamp(10px, 1vw, 12px);
+  --sidebar-width: clamp(240px, 22vw, 286px);
+}
+
+body.zoom-scroll-mode .topbar {
+  min-height: 0;
+  padding: 10px clamp(10px, 1.4vw, 16px);
+}
+
+body.zoom-scroll-mode .tool-nav,
+body.zoom-scroll-mode .tool-section-nav {
+  gap: 5px;
+}
+
+body.zoom-scroll-mode .tool-grid {
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .brand-lockup {
+    align-items: flex-start;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+    border-radius: 12px;
+  }
+
+  .top-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+    width: 100%;
+  }
+
+  .tool-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.page-scroll-mode .tool-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tool-nav button {
+    min-height: 46px;
+  }
+
+  .tool-nav button .nav-hint {
+    display: none;
+  }
+
+  .tool-section-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.page-scroll-mode .tool-section-nav {
+    position: static;
+    top: auto;
+  }
+
+  .row,
+  .row.three,
+  .row.item-row,
+  .row.item-toolbar,
+  .row.compact-id-row,
+  .row.actor-row,
+  .row.actor-browser-row,
+  .row.skill-row,
+  .row.skill-toolbar,
+  .row.vitals-row,
+  .row.param-row,
+  .row.rates-row,
+  .row.talent-point-row,
+  .row.title-toolbar,
+  .row.costume-toolbar,
+  .row.offline-hunt-row,
+  .row.troop-mode-row,
+  .row.map-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .button-stack,
+  .battle-switches,
+  .unlock-grid,
+  .offline-loot-options {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-row {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .catalog-name {
+    display: -webkit-box;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .catalog-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  .catalog-actions button {
+    flex: 1 1 96px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
