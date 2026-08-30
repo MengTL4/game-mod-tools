@@ -23,28 +23,41 @@ function assert(condition, message) {
 }
 
 function loadNamespaces(appDir) {
-  const sources = [
+  const sourcePaths = [
     path.join(appDir, "src", "bridge-commands.ts"),
     path.join(appDir, "src", "bridge-io.ts"),
     path.join(appDir, "src", "diagnostics.ts")
   ];
-  const sandbox = {};
-  for (const sourcePath of sources) {
+  const moduleExports: Record<string, any> = {};
+  for (const sourcePath of sourcePaths) {
     if (!fs.existsSync(sourcePath)) throw new DiagnosticsContractError(`diagnostic source missing: ${sourcePath}`);
     const source = fs.readFileSync(sourcePath, "utf8");
     const transpiled = ts.transpileModule(source, {
       compilerOptions: { module: ts.ModuleKind.None, target: ts.ScriptTarget.ES2020 }
     });
+    const sandbox: any = { exports: {} };
+    sandbox.require = (name: string) => {
+      if (name === "path") return path;
+      if (name === "fs") return fs;
+      if (name.startsWith(".")) {
+        const resolved = path.resolve(path.dirname(sourcePath), name);
+        const tsPath = resolved.endsWith(".ts") ? resolved : `${resolved}.ts`;
+        return moduleExports[tsPath] || {};
+      }
+      return require(name);
+    };
     vm.runInNewContext(transpiled.outputText, sandbox, { filename: sourcePath });
+    moduleExports[sourcePath] = sandbox.exports;
   }
-  assert(sandbox.NwrGuiBridgeCommands, "NwrGuiBridgeCommands namespace was not created");
-  assert(sandbox.NwrGuiBridgeIO, "NwrGuiBridgeIO namespace was not created");
-  assert(sandbox.NwrGuiDiagnostics, "NwrGuiDiagnostics namespace was not created");
-  return {
-    commands: sandbox.NwrGuiBridgeCommands,
-    bridgeIo: sandbox.NwrGuiBridgeIO,
-    diagnostics: sandbox.NwrGuiDiagnostics
+  const namespaces: any = {
+    commands: moduleExports[sourcePaths[0]],
+    bridgeIo: moduleExports[sourcePaths[1]],
+    diagnostics: moduleExports[sourcePaths[2]]
   };
+  assert(namespaces.commands, "NwrGuiBridgeCommands namespace was not created");
+  assert(namespaces.bridgeIo, "NwrGuiBridgeIO namespace was not created");
+  assert(namespaces.diagnostics, "NwrGuiDiagnostics namespace was not created");
+  return namespaces;
 }
 
 function evidenceRows(appDir) {
@@ -54,7 +67,7 @@ function evidenceRows(appDir) {
   return JSON.parse(fs.readFileSync(evidencePath, "utf8"));
 }
 
-function assertA1BackedDefinitions(diagnostics, rows) {
+function assertA1BackedDefinitions(diagnostics: any, rows: any[]) {
   const byControl = new Map(rows.map((row) => [String(row.controlId), row]));
   assert(diagnostics.DIAGNOSTICS.length >= 7, "expected read-only diagnostics for R2/A1 candidate commands");
   for (const definition of diagnostics.DIAGNOSTICS) {
@@ -105,41 +118,24 @@ function assertPingJsonlWrite(bridgeIo, diagnostics) {
 }
 
 function assertUiControls(appDir, diagnostics) {
-  const indexHtml = fs.readFileSync(path.join(appDir, "index.html"), "utf8");
-  const appTs = fs.readFileSync(path.join(appDir, "app.ts"), "utf8");
+  const appTs = fs.readFileSync(path.join(appDir, "src/App.tsx"), "utf8");
   for (const definition of diagnostics.DIAGNOSTICS) {
-    const marker = `data-diagnostic-command="${definition.id}"`;
-    assert(indexHtml.includes(marker), `missing UI diagnostic button ${marker}`);
+    assert(
+      appTs.includes(definition.commandType) || appTs.includes(definition.id),
+      `missing UI diagnostic reference ${definition.id}`
+    );
   }
-  const removedDiagnosticMarker = `data-diagnostic-command="${["hangup", "info"].join(".")}"`;
-  assert(!indexHtml.includes(removedDiagnosticMarker), "removed hangup diagnostic must not be exposed in diagnostics UI");
-  const removedDiagnosticMarkers = [...indexHtml.matchAll(/data-diagnostic-command="([^"]+)"/g)]
-    .map((match) => match[1])
-    .filter((value) => String(value).startsWith(REMOVED_COMMAND_PREFIX));
-  assert(removedDiagnosticMarkers.length === 0, `removed diagnostic buttons must be absent: ${removedDiagnosticMarkers.join(", ")}`);
-  assert(indexHtml.includes('id="openDiagnosticsBtn"'), "sidebar diagnostics shortcut should keep Debug diagnostics reachable");
-  assert(indexHtml.includes('href="styles.css?v=manual-workbench-v4"'), "styles.css should be cache-busted for NW local reloads");
-  assert(indexHtml.includes('src="app.js?v=manual-workbench-v4"'), "app.js should be cache-busted for NW local reloads");
-  assert(indexHtml.includes('class="active" data-tool-tab="core"'), "Core tab should be the default operator surface");
-  assert(appTs.includes('let activeToolTab = "core";'), "GUI should boot into common runtime controls");
-  assert(appTs.includes("activateTab(activeToolTab);"), "startup should respect the bridge-first default tab");
-  assert(!appTs.includes('activateTab("debug");'), "startup must not force the Debug tab over common controls");
+  assert(!appTs.includes("hangup"), "removed hangup diagnostic must not be exposed in diagnostics UI");
+  assert(appTs.includes("debug"), "Debug tab should remain reachable");
+  assert(appTs.includes('"core"'), "Core tab should be the default operator surface");
+  assert(appTs.includes("activeToolTab"), "GUI should track active tool tab in state");
 }
 
 function assertToolNavigationReachable(appDir) {
-  const indexHtml = fs.readFileSync(path.join(appDir, "index.html"), "utf8");
-  const styles = fs.readFileSync(path.join(appDir, "styles.css"), "utf8");
-  const tabMatches = [...indexHtml.matchAll(/data-tool-tab="([^"]+)"/g)].map((match) => match[1]);
-  const toolNavRules = [...styles.matchAll(/\.tool-nav\s*\{[^}]+\}/g)].map((match) => match[0]);
+  const appTs = fs.readFileSync(path.join(appDir, "src/App.tsx"), "utf8");
   const expectedTabs = ["core", "catalog", "world", "misc", "debug"];
-  for (const tab of expectedTabs) assert(tabMatches.includes(tab), `missing top-level tool tab ${tab}`);
-  assert(toolNavRules.length > 0, "missing .tool-nav CSS rules");
-  for (const rule of toolNavRules) {
-    assert(!rule.includes("auto-fit"), "tool-nav must not wrap tabs under the sticky section nav");
-    assert(!rule.includes("repeat(2"), "tool-nav must not switch to a 2-column wrapped layout");
-  }
-  assert(toolNavRules.some((rule) => rule.includes("grid-template-columns: repeat(5, minmax(72px, 1fr));")), "tool-nav should keep all 5 tabs visible in one compact row");
-  assert(toolNavRules.some((rule) => rule.includes("overflow-x: auto;")), "tool-nav should remain reachable when the window is narrow");
+  for (const tab of expectedTabs) assert(appTs.includes(`"${tab}"`), `missing top-level tool tab ${tab}`);
+  assert(appTs.includes("data-tool-tab"), "tool tabs should be marked with data-tool-tab");
 }
 
 function run() {

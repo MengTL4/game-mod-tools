@@ -133,17 +133,17 @@ tools/launch-save-editor.ps1          启动离线存档编辑器
 tools/launch-runtime.ps1              准备手动 bridge 游戏
 tools/setup-runtime.ps1               刷新 NW 运行时链接和 harness
 tools/clean-runtime.ps1               清理生成文件
-tools/trainer-send.mjs                运行时命令行接口
-tools/save-codec.mjs                  存档编解码
+tools/trainer-send.ts                 运行时命令行接口
+tools/save-codec.ts                   存档编解码
 tools/extract-saves.ps1               导出存档 JSON
 tools/encrypt-saves.ps1               重新编码存档
-tools/data-codec.mjs                  数据 JSON 加解密
+tools/data-codec.ts                   数据 JSON 加解密
 tools/extract-data.ps1                导出 www/data/*.json
 tools/encrypt-data.ps1                重新加密 data JSON
-tools/extract-data-pak.mjs            导出 data.pak
-tools/extract-usedata.mjs             导出 useData
-tools/build-save-editor-index.mjs     生成存档编辑器索引
-tools/diagnose-prison-checks.mjs      检查小黑屋风险
+tools/extract-data-pak.ts             导出 data.pak
+tools/extract-usedata.ts              导出 useData
+tools/build-save-editor-index.ts      生成存档编辑器索引
+tools/diagnose-prison-checks.ts       检查小黑屋风险
 ```
 
 更完整的用法见 [工具使用说明](docs/工具使用说明.md)。

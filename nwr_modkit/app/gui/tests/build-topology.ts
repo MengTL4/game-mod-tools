@@ -16,7 +16,7 @@ const require = createRequire(import.meta.url);
 
 function usage() {
   return [
-    "Usage: node tests/build-topology.mjs [--expect-out-file <path>]",
+    "Usage: node tests/build-topology.ts [--expect-out-file <path>]",
     "",
     "Verifies the NW GUI TypeScript build emits the single app.js entry without a bundler."
   ].join("\n");
@@ -77,53 +77,19 @@ function findAssetRefs(html, tagName, attrName) {
   return refs;
 }
 
-function runTsc(projectPath, cwd) {
-  const tscPath = require.resolve("typescript/bin/tsc");
-  const result = spawnSync(process.execPath, [tscPath, "-p", projectPath], {
-    cwd,
+function runBuild(appDir) {
+  const shell = process.platform === "win32";
+  const npmCommand = shell ? "npm.cmd" : "npm";
+  const result = spawnSync(npmCommand, ["run", "build"], {
+    cwd: appDir,
     encoding: "utf8",
-    windowsHide: true
+    windowsHide: true,
+    shell
   });
   if (result.status !== 0) {
     throw new BuildTopologyError(
-      [`tsc build spike failed with exit ${result.status}`, result.stdout, result.stderr].join("\n")
+      [`vite build failed with exit ${result.status}`, result.stdout, result.stderr].join("\n")
     );
-  }
-}
-
-function runBuildSpike(appDir) {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nwr-gui-topology-"));
-  try {
-    const spikeSrc = path.join(tempRoot, "src");
-    fs.mkdirSync(spikeSrc, { recursive: true });
-    fs.writeFileSync(path.join(spikeSrc, "00-first.ts"), "var BUILD_TOPOLOGY_SPIKE = 'first';\n", "utf8");
-    fs.writeFileSync(path.join(spikeSrc, "10-second.ts"), "BUILD_TOPOLOGY_SPIKE += ':second';\n", "utf8");
-    fs.writeFileSync(
-      path.join(tempRoot, "tsconfig.json"),
-      JSON.stringify(
-        {
-          compilerOptions: {
-            target: "ES2020",
-            module: "none",
-            outFile: "app.js",
-            strict: true
-          },
-          files: ["src/00-first.ts", "src/10-second.ts"]
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
-    runTsc(path.join(tempRoot, "tsconfig.json"), appDir);
-    const output = readText(path.join(tempRoot, "app.js"));
-    const firstIndex = output.indexOf("BUILD_TOPOLOGY_SPIKE = 'first'");
-    const secondIndex = output.indexOf("BUILD_TOPOLOGY_SPIKE += ':second'");
-    assert(firstIndex >= 0, "build spike missing first source output");
-    assert(secondIndex > firstIndex, "build spike did not preserve source order into app.js");
-    return { outputBytes: Buffer.byteLength(output), tempRoot };
-  } finally {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 }
 
@@ -135,30 +101,51 @@ function run() {
   const appDir = path.resolve(testsDir, "..");
   const modkitDir = path.resolve(appDir, "..", "..");
   const tsconfig = readJson(path.join(appDir, "tsconfig.json"));
+  const tsconfigApp = readJson(path.join(appDir, "tsconfig.app.json"));
   const indexHtml = readText(path.join(appDir, "index.html"));
   const launcher = readText(path.join(modkitDir, "tools", "launch-gui.ps1"));
+  const packageJson = readJson(path.join(appDir, "package.json"));
 
-  assert(tsconfig.compilerOptions?.module === "none", "tsconfig must keep module none for NW script output");
-  assert(tsconfig.compilerOptions?.outFile === options.expectedOutFile, `tsconfig must emit outFile ${options.expectedOutFile}`);
-  assert(Array.isArray(tsconfig.files) && tsconfig.files.includes("app.ts"), "tsconfig must include app.ts");
+  assert(fs.existsSync(path.join(appDir, "vite.config.ts")), "vite config must exist for modern GUI build");
+  assert(packageJson.scripts?.build, "package.json must define a build script");
+  assert(tsconfig.references?.some((ref) => ref.path === "./tsconfig.app.json"), "tsconfig must reference tsconfig.app.json");
+  assert(tsconfigApp.compilerOptions?.module === "ESNext", "tsconfig.app.json must use ESNext module for Vite");
+  assert(tsconfigApp.compilerOptions?.noEmit === true, "tsconfig.app.json must set noEmit for Vite type-checking");
+  assert(tsconfigApp.compilerOptions?.jsx === "react-jsx", "tsconfig.app.json must use react-jsx transform");
+  assert(
+    (tsconfigApp.include || []).some((pattern) => pattern.includes("src")),
+    "tsconfig.app.json must include src directory"
+  );
+
   const scriptRefs = findAssetRefs(indexHtml, "script", "src");
-  const entryScript = scriptRefs.find((ref) => assetPath(ref) === options.expectedOutFile);
-  assert(entryScript, `index.html must load generated ${options.expectedOutFile}`);
-  assert(launcher.includes('$AppSrc = Join-Path $Gui "src"'), "launch-gui.ps1 must know the src source directory");
-  assert(launcher.includes('Get-ChildItem -LiteralPath $AppSrc -Filter "*.ts" -File -Recurse'), "launch-gui.ps1 must watch src TypeScript files");
+  const entryScript = scriptRefs.find((ref) => assetPath(ref) === "/src/main.tsx" || assetPath(ref) === "src/main.tsx");
+  assert(entryScript, "index.html must load the Vite React entry src/main.tsx");
 
-  const spike = runBuildSpike(appDir);
-  const appJsPath = path.join(appDir, "app.js");
-  const appJsStats = fs.statSync(appJsPath);
+  assert(launcher.includes('$AppSrc = Join-Path $Gui "src"'), "launch-gui.ps1 must know the src source directory");
+  assert(
+    launcher.includes('Get-ChildItem -LiteralPath $AppSrc -Filter "*.ts" -File -Recurse') ||
+      launcher.includes('Get-ChildItem -LiteralPath $AppSrc -Filter "*.tsx" -File -Recurse'),
+    "launch-gui.ps1 must watch src TypeScript/TSX files"
+  );
+
+  runBuild(appDir);
+  const distDir = path.join(appDir, "dist");
+  assert(fs.existsSync(distDir), "vite build must produce dist directory");
+  const distFiles = fs.readdirSync(distDir);
+  const indexPath = path.join(distDir, "index.html");
+  assert(fs.existsSync(indexPath), "vite build must produce dist/index.html");
+  const indexSize = fs.statSync(indexPath).size;
+  const assetsDir = path.join(distDir, "assets");
+  const assetCount = fs.existsSync(assetsDir) ? fs.readdirSync(assetsDir).length : 0;
 
   console.log("GUI build topology");
-  console.log(`tsconfig module: ${tsconfig.compilerOptions.module}`);
-  console.log(`tsconfig outFile: ${tsconfig.compilerOptions.outFile}`);
+  console.log(`tsconfig module: ${tsconfigApp.compilerOptions.module}`);
+  console.log(`tsconfig jsx: ${tsconfigApp.compilerOptions.jsx}`);
   console.log(`index entry: ${entryScript}`);
   console.log(`launcher watches src: yes`);
-  console.log(`build spike output bytes: ${spike.outputBytes}`);
-  console.log(`app.js bytes: ${appJsStats.size}`);
-  console.log(`app.js mtimeMs: ${Math.trunc(appJsStats.mtimeMs)}`);
+  console.log(`dist files: ${distFiles.length}`);
+  console.log(`dist assets: ${assetCount}`);
+  console.log(`dist/index.html bytes: ${indexSize}`);
 }
 
 try {

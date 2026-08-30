@@ -152,19 +152,19 @@ zs2_modkit/
     package.json
     package-lock.json
     modkit-config.ps1
-    modkit-config.mjs
+    modkit-config.ts
     setup-runtime.ps1
     clean-runtime.ps1
     launch-gui.ps1
     launch-save-editor.ps1
     launch-runtime.ps1
-    trainer-send.mjs
-    extract-bytecode-bundles.mjs
-    extract-data-pak.mjs
-    extract-usedata.mjs
-    extract-saves.mjs
+    trainer-send.ts
+    extract-bytecode-bundles.ts
+    extract-data-pak.ts
+    extract-usedata.ts
+    extract-saves.ts
     extract-saves.ps1
-    encrypt-saves.mjs
+    encrypt-saves.ts
     encrypt-saves.ps1
     extract-all.ps1
   output/
@@ -256,10 +256,10 @@ Override environment: ZS2_NPM_REGISTRY
 Implement:
 
 ```text
-tools/extract-data-pak.mjs
-tools/extract-usedata.mjs
-tools/extract-saves.mjs
-tools/encrypt-saves.mjs
+tools/extract-data-pak.ts
+tools/extract-usedata.ts
+tools/extract-saves.ts
+tools/encrypt-saves.ts
 ```
 
 Outputs:
@@ -271,7 +271,7 @@ output/extract/save
 output/repack/save
 ```
 
-`launch-gui.ps1` should auto-run `extract-data-pak.mjs` when GUI catalog data is missing, stale, or still encrypted.
+`launch-gui.ps1` should auto-run `extract-data-pak.ts` when GUI catalog data is missing, stale, or still encrypted.
 
 Save editor and save scripts should support the ZS2 save format:
 
@@ -373,12 +373,12 @@ skills/references/formats-and-contracts.md
 Minimum checks:
 
 ```powershell
-node --check .\tools\modkit-config.mjs
-node --check .\tools\extract-data-pak.mjs
-node --check .\tools\extract-usedata.mjs
-node --check .\tools\extract-saves.mjs
-node --check .\tools\encrypt-saves.mjs
-node --check .\tools\trainer-send.mjs
+node --check .\tools\modkit-config.ts
+node --check .\tools\extract-data-pak.ts
+node --check .\tools\extract-usedata.ts
+node --check .\tools\extract-saves.ts
+node --check .\tools\encrypt-saves.ts
+node --check .\tools\trainer-send.ts
 node --check .\runtime\bridge\page-bridge.js
 
 Push-Location .\app\gui
@@ -399,6 +399,6 @@ Runtime checks:
 .\tools\setup-runtime.ps1 -Force
 .\tools\extract-all.ps1
 .\tools\encrypt-saves.ps1
-node .\tools\trainer-send.mjs status
-node .\tools\trainer-send.mjs ping
+node .\tools\trainer-send.ts status
+node .\tools\trainer-send.ts ping
 ```

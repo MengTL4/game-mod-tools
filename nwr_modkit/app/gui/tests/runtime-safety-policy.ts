@@ -67,16 +67,16 @@ function assertRetiredToolsRemoved(modkitDir) {
     "runtime/bridge/manifest.json",
     "runtime/extension",
     "runtime/extension-probe",
-    "tools/cdp-command-pump.mjs",
-    "tools/extension-bridge-server.mjs",
-    "tools/inject-bridge-cdp.mjs",
+    "tools/cdp-command-pump.ts",
+    "tools/extension-bridge-server.ts",
+    "tools/inject-bridge-cdp.ts",
     "tools/launch-cdp-runtime.ps1",
     "tools/launch-extension-runtime.ps1",
     "tools/launch-patched-html-runtime.ps1",
     "tools/launch-preload-runtime.ps1",
     "tools/launch-visible-runtime.ps1",
     "tools/launch-wrapper-runtime.ps1",
-    "tools/runtime-smoke.mjs"
+    "tools/runtime-smoke.ts"
   ];
   const existing = retiredPaths.filter((relative) => fs.existsSync(path.join(modkitDir, relative)));
   if (existing.length > 0) throw new RuntimeSafetyPolicyError(`retired runtime files still exist: ${formatList(existing)}`);

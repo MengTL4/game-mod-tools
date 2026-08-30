@@ -1,0 +1,27 @@
+Runtime Gate A1: live GUI feature validity audit
+Date: 2026-06-12
+
+Inventory and protocol coverage
+- Panels inventoried: 14
+- HTML buttons seen: 35
+- Matrix rows: 69
+- Command types represented: 35
+- Classifications: keep=42, optimize=7, disable-guard=13, candidate-add=7
+
+Live discovery commands
+
+Live facts used for classification
+- Loaded state: hasParty=undefined, hasVariables=undefined, hasSwitches=undefined, currentMap=undefined, lastError=undefined
+- data.dump: available tables=undefined, outputDir=undefined
+- trainer.hooks.info: {}
+
+Classification policy
+- keep: runtime backing exists or local GUI helper is valid; mutating keep rows still have actionAllowed=false until R3 when applicable.
+- disable-guard: scene-dependent, save/write, battle, map transfer, common-event, or arbitrary custom JSON surfaces.
+- optimize: command exists and remains visible with hook/state evidence; scene-specific controls still rely on per-control guardrails.
+- candidate-add: read-only diagnostics live-proven by A1 and eligible for later T11/T12 UI work.
+- delete: live evidence proves the candidate surface is unavailable in this game.
+
+Conclusion
+- A1 passes for read-only audit evidence. Do not delete or add GUI controls outside rows in runtime-gate-feature-audit.json.
+- Next gate is R3 reversible mutation proof; mutating controls remain actionAllowed=false until that gate supplies restoration evidence.

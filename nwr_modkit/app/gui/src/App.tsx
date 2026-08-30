@@ -55,16 +55,16 @@ export default function App() {
               {runtimeView.status.text}
             </div>
             <div className="flex min-w-[16rem] flex-col gap-1">
-              <Select value={routeModel.routeName} onChange={(e) => state.setSelectedRuntimeRoute(e.currentTarget.value)} className="font-semibold">
+              <Select id="runtimeRoute" value={routeModel.routeName} onChange={(e) => state.setSelectedRuntimeRoute(e.currentTarget.value)} className="font-semibold">
                 {NwrGuiRuntimeRoutes.routeOptions().map((route) => (
                   <option key={route.name} value={route.name}>{route.label}</option>
                 ))}
               </Select>
               <span className="text-xs text-muted-foreground">{routeModel.riskNote}</span>
             </div>
-            <Button onClick={state.launchGame} disabled={!!state.gameProcess}>准备桥接</Button>
-            <Button onClick={state.openPreparedGame} disabled={!preparedGameReady()}>打开游戏</Button>
-            <Button variant="outline" onClick={state.refresh}>刷新</Button>
+            <Button id="launchBtn" onClick={state.launchGame} disabled={!!state.gameProcess}>准备桥接</Button>
+            <Button id="openPreparedGameBtn" onClick={state.openPreparedGame} disabled={!preparedGameReady()}>打开游戏</Button>
+            <Button id="refreshBtn" variant="outline" onClick={state.refresh}>刷新</Button>
           </div>
         </div>
       </header>
@@ -79,6 +79,7 @@ export default function App() {
                 {tabs.map((tab) => (
                   <Button
                     key={tab.id}
+                    data-tool-tab={tab.id}
                     variant={activeToolTab === tab.id ? "default" : "ghost"}
                     size="sm"
                     onClick={() => activateTab(tab.id)}
@@ -91,7 +92,7 @@ export default function App() {
           </Card>
 
           {sections.length > 1 && (
-            <Card>
+            <Card id="toolSectionNav">
               <CardContent className="flex flex-wrap gap-1 p-2">
                 {sections.map((section) => (
                   <Button
@@ -234,14 +235,14 @@ function GoldPanel({ state }: { state: ReturnType<typeof useAppState> }) {
       <div className="text-3xl font-bold text-primary">{state.formatNumber(state.runtimeView.goldMetric)}</div>
       <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-end">
         <LabeledInput label="" type="number" min={0} step={1} value={state.goldValue} onChange={(v) => state.setGoldValue(Number(v))} />
-        <Button onClick={() => state.sendCommand(NwrGuiBridgeCommands.goldSet(state.goldValue))}>设定</Button>
-        <Button onClick={() => state.sendCommand(NwrGuiBridgeCommands.goldAdd(state.goldValue))}>增加</Button>
+        <Button id="goldSetBtn" onClick={() => state.sendCommand(NwrGuiBridgeCommands.goldSet(state.goldValue))}>设定</Button>
+        <Button id="goldAddBtn" onClick={() => state.sendCommand(NwrGuiBridgeCommands.goldAdd(state.goldValue))}>增加</Button>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.goldAdd(1000))}>+1K</Button>
-        <Button variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.goldAdd(10000))}>+10K</Button>
-        <Button variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.goldAdd(100000))}>+100K</Button>
-        <Button variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.goldSet(9999999))}>MAX</Button>
+        <Button data-gold-add="1000" variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.goldAdd(1000))}>+1K</Button>
+        <Button data-gold-add="10000" variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.goldAdd(10000))}>+10K</Button>
+        <Button data-gold-add="100000" variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.goldAdd(100000))}>+100K</Button>
+        <Button data-gold-set="9999999" variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.goldSet(9999999))}>MAX</Button>
       </div>
     </PanelCard>
   );
@@ -307,6 +308,7 @@ function PrisonPanel({ state }: { state: ReturnType<typeof useAppState> }) {
       </div>
 
       <Button
+        id="prisonRepairBtn"
         variant="destructive"
         disabled={!(live && report && report.hits.some((c) => c.fixable))}
         onClick={() => state.sendCommand(NwrGuiBridgeCommands.prisonRepair())}
@@ -333,7 +335,7 @@ function RatePanel({ state }: { state: ReturnType<typeof useAppState> }) {
         <LabeledInput label="经验" type="number" min={0} step={0.1} value={state.expRate} onChange={(v) => state.setExpRate(Number(v))} />
         <LabeledInput label="积分" type="number" min={0} step={0.1} value={state.goldRate} onChange={(v) => state.setGoldRate(Number(v))} />
         <LabeledInput label="掉率" type="number" min={0} step={0.1} value={state.dropRate} onChange={(v) => state.setDropRate(Number(v))} />
-        <Button onClick={() => state.sendOptions({ expRate: state.expRate, goldRate: state.goldRate, dropRate: state.dropRate })}>应用</Button>
+        <Button id="ratesApplyBtn" onClick={() => state.sendOptions({ expRate: state.expRate, goldRate: state.goldRate, dropRate: state.dropRate })}>应用</Button>
       </div>
       <div className="flex flex-wrap gap-2">
         {[5, 10, 20, 50, 100, 1].map((rate) => (
@@ -355,21 +357,21 @@ function BattlePanel({ state }: { state: ReturnType<typeof useAppState> }) {
   return (
     <PanelCard title="战斗" tab="core" section="battle">
       <div className="flex flex-wrap gap-2">
-        <ToggleButton active={state.noCost} onClick={() => state.sendOptions({ noSkillCost: !state.noCost })}>技能无耗</ToggleButton>
-        <ToggleButton active={state.oneHitKill} onClick={() => state.sendOptions({ oneHitKill: !state.oneHitKill })}>一击秒杀</ToggleButton>
-        <ToggleButton active={state.invincible} onClick={() => state.sendOptions({ invincible: !state.invincible })}>无敌</ToggleButton>
-        <Button variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.battleKillEnemies())}>秒杀敌人</Button>
-        <Button variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.battleEscape())}>逃跑</Button>
-        <Button variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.partyRecover())}>队伍恢复</Button>
+        <ToggleButton id="noCostBtn" active={state.noCost} onClick={() => state.sendOptions({ noSkillCost: !state.noCost })}>技能无耗</ToggleButton>
+        <ToggleButton id="oneHitKillBtn" active={state.oneHitKill} onClick={() => state.sendOptions({ oneHitKill: !state.oneHitKill })}>一击秒杀</ToggleButton>
+        <ToggleButton id="invincibleBtn" active={state.invincible} onClick={() => state.sendOptions({ invincible: !state.invincible })}>无敌</ToggleButton>
+        <Button id="battleKillBtn" variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.battleKillEnemies())}>秒杀敌人</Button>
+        <Button id="battleEscapeBtn" variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.battleEscape())}>逃跑</Button>
+        <Button id="partyRecoverBtn" variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.partyRecover())}>队伍恢复</Button>
       </div>
       <div className="text-xs text-muted-foreground">{state.runtimeView.fresh ? "已连接" : "等待命中"}</div>
     </PanelCard>
   );
 }
 
-function ToggleButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function ToggleButton({ id, active, onClick, children }: { id?: string; active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <Button variant={active ? "default" : "outline"} onClick={onClick}>{children}</Button>
+    <Button id={id} variant={active ? "default" : "outline"} onClick={onClick}>{children}</Button>
   );
 }
 
@@ -378,8 +380,8 @@ function SavePanel({ state }: { state: ReturnType<typeof useAppState> }) {
     <PanelCard title="存档" tab="core" section="save">
       <div className="grid grid-cols-[auto_1fr_1fr] gap-2 items-end">
         <LabeledInput label="槽位" type="number" min={1} step={1} value={state.saveSlot} onChange={(v) => state.setSaveSlot(Number(v))} />
-        <Button onClick={() => state.sendCommand(NwrGuiBridgeCommands.save(state.saveSlot))}>保存</Button>
-        <Button variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.titleRefresh())}>刷新标题</Button>
+        <Button id="saveGameBtn" onClick={() => state.sendCommand(NwrGuiBridgeCommands.save(state.saveSlot))}>保存</Button>
+        <Button id="titleRefreshBtn" variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.titleRefresh())}>刷新标题</Button>
       </div>
     </PanelCard>
   );
@@ -417,7 +419,7 @@ function ItemPanel({ state }: { state: ReturnType<typeof useAppState> }) {
       </div>
       <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
         <LabeledInput label="ID" value={state.itemId} onChange={(v) => state.setItemId(v)} />
-        <Button onClick={() => state.addItem(selection.kind, selection.id)}>添加选中</Button>
+        <Button id="itemAddBtn" onClick={() => state.addItem(selection.kind, selection.id)}>添加选中</Button>
       </div>
       <div className="text-xs text-muted-foreground min-h-[1.25rem]">{hint}</div>
       <CatalogList view={view} kind="item" state={state} />
@@ -444,7 +446,7 @@ function ActorPanel({ state }: { state: ReturnType<typeof useAppState> }) {
     <PanelCard title="角色编辑" tab="catalog" section="actor" className="xl:col-span-2">
       <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
         <Input type="search" placeholder="搜索角色名称或ID" value={state.actorSearch} onChange={(e) => state.setActorSearch(e.currentTarget.value)} />
-        <Button onClick={() => state.unlockActor(state.activeActorId())}>解锁人物</Button>
+        <Button id="actorUnlockBtn" onClick={() => state.unlockActor(state.activeActorId())}>解锁人物</Button>
       </div>
       <div className="grid grid-cols-4 gap-2">
         <LabeledInput label="角色ID" value={state.actorId} onChange={(v) => state.setActorId(v)} />
@@ -454,18 +456,18 @@ function ActorPanel({ state }: { state: ReturnType<typeof useAppState> }) {
       </div>
       <div className="text-xs text-muted-foreground min-h-[1.25rem]">{hint}</div>
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorAdd(state.activeActorId()))}>解锁/入队</Button>
-        <Button variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorRemove(state.activeActorId()))}>离队</Button>
-        <Button variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorRecover(state.activeActorId()))}>恢复</Button>
-        <Button variant="outline" onClick={() => state.setActorNameCmd(state.activeActorId())}>改名</Button>
-        <Button variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorLevelSet(state.activeActorId(), state.actorLevel))}>设级</Button>
-        <Button variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorExpAdd(state.activeActorId(), state.actorExp))}>加经验</Button>
+        <Button id="actorAddBtn" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorAdd(state.activeActorId()))}>解锁/入队</Button>
+        <Button id="actorRemoveBtn" variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorRemove(state.activeActorId()))}>离队</Button>
+        <Button id="actorRecoverBtn" variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorRecover(state.activeActorId()))}>恢复</Button>
+        <Button id="actorNameBtn" variant="outline" onClick={() => state.setActorNameCmd(state.activeActorId())}>改名</Button>
+        <Button id="actorLevelBtn" variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorLevelSet(state.activeActorId(), state.actorLevel))}>设级</Button>
+        <Button id="actorExpBtn" variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorExpAdd(state.activeActorId(), state.actorExp))}>加经验</Button>
       </div>
       <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
         <LabeledInput label="HP" type="number" value={state.actorHp} onChange={(v) => state.setActorHp(v)} placeholder="空" />
         <LabeledInput label="MP" type="number" value={state.actorMp} onChange={(v) => state.setActorMp(v)} placeholder="空" />
         <LabeledInput label="TP" type="number" value={state.actorTp} onChange={(v) => state.setActorTp(v)} placeholder="空" />
-        <Button onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorVitalsSet(state.activeActorId(), state.optionalNumber(state.actorHp), state.optionalNumber(state.actorMp), state.optionalNumber(state.actorTp)))}>写入</Button>
+        <Button id="actorVitalsBtn" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorVitalsSet(state.activeActorId(), state.optionalNumber(state.actorHp), state.optionalNumber(state.actorMp), state.optionalNumber(state.actorTp)))}>写入</Button>
       </div>
       <div className="grid grid-cols-[160px_1fr_auto] gap-2 items-end">
         <Select value={String(state.paramId)} onChange={(e) => state.setParamId(Number(e.currentTarget.value))}>
@@ -479,14 +481,14 @@ function ActorPanel({ state }: { state: ReturnType<typeof useAppState> }) {
           <option value="7">幸运</option>
         </Select>
         <LabeledInput label="值" type="number" value={state.paramValue} onChange={(v) => state.setParamValue(Number(v))} />
-        <Button onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorParamAdd(state.activeActorId(), state.paramId, state.paramValue))}>加值</Button>
+        <Button id="actorParamBtn" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorParamAdd(state.activeActorId(), state.paramId, state.paramValue))}>加值</Button>
       </div>
       <div className="grid grid-cols-[120px_1fr_auto_1fr_auto] gap-2 items-end">
         <LabeledInput label="职业ID" type="number" min={1} value={state.actorPointClassId} onChange={(v) => state.setActorPointClassId(v)} placeholder="当前" />
         <LabeledInput label="SP" type="number" value={state.actorSpValue} onChange={(v) => state.setActorSpValue(Number(v))} />
-        <Button onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorJpAdd(state.activeActorId(), state.actorSpValue, state.actorPointClass()))}>加 SP</Button>
+        <Button id="actorSpBtn" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorJpAdd(state.activeActorId(), state.actorSpValue, state.actorPointClass()))}>加 SP</Button>
         <LabeledInput label="属性点" type="number" value={state.actorAllocationPointValue} onChange={(v) => state.setActorAllocationPointValue(Number(v))} />
-        <Button onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorAllocationPointsAdd(state.activeActorId(), state.actorAllocationPointValue, state.actorPointClass()))}>加属性点</Button>
+        <Button id="actorAllocationPointsBtn" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorAllocationPointsAdd(state.activeActorId(), state.actorAllocationPointValue, state.actorPointClass()))}>加属性点</Button>
       </div>
       <CatalogList view={view} kind="actor" state={state} />
     </PanelCard>
@@ -515,8 +517,8 @@ function SkillPanel({ state }: { state: ReturnType<typeof useAppState> }) {
       </div>
       <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-end">
         <LabeledInput label="技能ID" value={state.skillId} onChange={(v) => state.setSkillId(v)} />
-        <Button onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorSkillLearn(state.skillActor(), state.numberValue(state.skillId, 0)))}>学会</Button>
-        <Button variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorSkillForget(state.skillActor(), state.numberValue(state.skillId, 0)))}>遗忘</Button>
+        <Button id="skillLearnBtn" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorSkillLearn(state.skillActor(), state.numberValue(state.skillId, 0)))}>学会</Button>
+        <Button id="skillForgetBtn" variant="outline" onClick={() => state.sendCommand(NwrGuiBridgeCommands.actorSkillForget(state.skillActor(), state.numberValue(state.skillId, 0)))}>遗忘</Button>
       </div>
       <div className="text-xs text-muted-foreground min-h-[1.25rem]">{hint}</div>
       <CatalogList view={view} kind="skill" state={state} />
@@ -547,11 +549,11 @@ function MapPanel({ state }: { state: ReturnType<typeof useAppState> }) {
         <LabeledInput label="Y" type="number" value={state.mapY} onChange={(v) => state.setMapY(Number(v))} />
         <LabeledInput label="朝向" value={state.mapDirection} onChange={(v) => state.setMapDirection(Number(v))} />
         <LabeledInput label="淡入" value={state.mapFade} onChange={(v) => state.setMapFade(Number(v))} />
-        <Button onClick={() => state.transferMap(state.numberValue(state.mapId, 0))}>传送</Button>
+        <Button id="mapTransferBtn" onClick={() => state.transferMap(state.numberValue(state.mapId, 0))}>传送</Button>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" onClick={state.recordCurrentPosition}>记录当前位置</Button>
-        <Button variant="outline" onClick={state.returnRecordedPosition}>返回记录点</Button>
+        <Button id="returnPositionBtn" variant="outline" onClick={state.returnRecordedPosition}>返回记录点</Button>
         <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs text-muted-foreground">{state.recordedText}</span>
       </div>
       <div className="text-xs text-muted-foreground min-h-[1.25rem]">{hint}</div>
@@ -579,7 +581,7 @@ function CommonEventPanel({ state }: { state: ReturnType<typeof useAppState> }) 
       <Input type="search" placeholder="搜索公共事件名称或ID" value={state.commonEventSearch} onChange={(e) => state.setCommonEventSearch(e.currentTarget.value)} />
       <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
         <LabeledInput label="事件ID" value={state.commonEventId} onChange={(v) => state.setCommonEventId(v)} />
-        <Button onClick={() => state.runCommonEvent(state.numberValue(state.commonEventId, 0))}>运行事件</Button>
+        <Button id="commonEventRunBtn" onClick={() => state.runCommonEvent(state.numberValue(state.commonEventId, 0))}>运行事件</Button>
       </div>
       <div className="text-xs text-muted-foreground min-h-[1.25rem]">{hint}</div>
       <CatalogList view={view} kind="commonEvent" state={state} />
@@ -607,7 +609,7 @@ function VariablePanel({ state }: { state: ReturnType<typeof useAppState> }) {
       <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
         <LabeledInput label="ID" value={state.variableId} onChange={(v) => state.setVariableId(v)} />
         <LabeledInput label="值" value={state.variableValue} onChange={(v) => state.setVariableValue(v)} />
-        <Button onClick={() => state.setVariable(state.numberValue(state.variableId, 0))}>写入</Button>
+        <Button id="variableSetBtn" onClick={() => state.setVariable(state.numberValue(state.variableId, 0))}>写入</Button>
       </div>
       <div className="text-xs text-muted-foreground min-h-[1.25rem]">{hint}</div>
       <CatalogList view={view} kind="variable" state={state} />
@@ -636,7 +638,7 @@ function SwitchPanel({ state }: { state: ReturnType<typeof useAppState> }) {
         <LabeledInput label="ID" value={state.switchId} onChange={(v) => state.setSwitchId(v)} />
         <Button variant={state.switchValue ? "default" : "outline"} onClick={() => state.setSwitchValue(true)}>ON</Button>
         <Button variant={!state.switchValue ? "default" : "outline"} onClick={() => state.setSwitchValue(false)}>OFF</Button>
-        <Button onClick={() => state.setSwitch(state.numberValue(state.switchId, 0), state.switchValue)}>写入</Button>
+        <Button id="switchSetBtn" onClick={() => state.setSwitch(state.numberValue(state.switchId, 0), state.switchValue)}>写入</Button>
       </div>
       <div className="text-xs text-muted-foreground min-h-[1.25rem]">{hint}</div>
       <CatalogList view={view} kind="switch" state={state} />
@@ -670,7 +672,7 @@ function CustomCommandPanel({ state }: { state: ReturnType<typeof useAppState> }
   return (
     <PanelCard title="自定义命令" tab="debug" section="command" className="xl:col-span-2">
       <Textarea value={state.customCommand} onChange={(e) => state.setCustomCommand(e.currentTarget.value)} spellCheck={false} />
-      <Button onClick={() => {
+      <Button id="customSendBtn" onClick={() => {
         try {
           const command = JSON.parse(state.customCommand);
           state.sendCommand(command);

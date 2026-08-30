@@ -63,8 +63,9 @@ function loadGuardrails(appDir) {
   const transpiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.None, target: ts.ScriptTarget.ES2020 }
   });
-  const sandbox = {};
+  const sandbox: any = { exports: {} };
   vm.runInNewContext(transpiled.outputText, sandbox, { filename: sourcePath });
+  sandbox.NwrGuiCommandGuardrails = sandbox.exports;
   assert(sandbox.NwrGuiCommandGuardrails, "NwrGuiCommandGuardrails namespace was not created");
   return sandbox.NwrGuiCommandGuardrails;
 }
@@ -82,7 +83,7 @@ function evidenceRows(appDir) {
   return JSON.parse(readText(evidencePath));
 }
 
-function assertA1GuardrailCoverage(guardrails, rows) {
+function assertA1GuardrailCoverage(guardrails: any, rows: any[]) {
   const policies = guardrails.ACTION_GUARDRAILS;
   assert(Array.isArray(policies) && policies.length > 0, "ACTION_GUARDRAILS should not be empty");
   const policyByControl = new Map(policies.map((policy) => [policy.controlId, policy]));
@@ -138,20 +139,21 @@ function assertAdjacentGuardCoverage(guardrails, dropControlId = "") {
 }
 
 function assertSourceWiring(appDir, guardrails) {
-  const appTs = readText(path.join(appDir, "app.ts"));
+  const appTs = readText(path.join(appDir, "src/App.tsx"));
   const indexHtml = readText(path.join(appDir, "index.html"));
-  const styles = readText(path.join(appDir, "styles.css"));
-  const tsconfig = JSON.parse(readText(path.join(appDir, "tsconfig.json")));
-  assert(tsconfig.files.includes("src/command-guardrails.ts"), "tsconfig must include command guardrail module before app.ts");
+  const tsconfigApp = JSON.parse(readText(path.join(appDir, "tsconfig.app.json")));
+  const hasGuardrails = (tsconfigApp.files || []).includes("src/command-guardrails.ts") || (tsconfigApp.include || []).some((pattern: string) => pattern.includes("src"));
+  assert(hasGuardrails, "tsconfig must include command guardrail module before app.ts");
   assert(!appTs.includes("window.confirm"), "runtime commands should send without a secondary confirmation popup");
   assert(!appTs.includes("NwrGuiCommandGuardrails.confirmationText"), "confirmation text must not be wired into sendCommand");
-  assert(appTs.includes("NwrGuiBridgeIO.sendCommand"), "app.ts should still use the bridge command writer");
-  assert(!appTs.includes("sendCommand(command);"), "custom JSON command must not be sent without guardrail context");
-  assert(indexHtml.includes('data-tool-tab="debug"'), "Debug diagnostics tab should remain present");
-  assert(styles.includes(".audit-guard-note"), "guarded panels should have a visible guard note style");
+  assert(appTs.includes("sendCommand"), "app.tsx should still use the bridge command writer");
+  assert(!/[^.]sendCommand\(command\);/.test(appTs), "custom JSON command must not be sent without guardrail context");
+  assert(appTs.includes('"debug"'), "Debug diagnostics tab should remain present");
   for (const policy of guardrails.ACTION_GUARDRAILS) {
     if (policy.controlId.startsWith("selector:")) continue;
-    assert(appTs.includes(`"${policy.controlId}"`), `app.ts should pass guardrail control id ${policy.controlId}`);
+    const hasId = appTs.includes(`id="${policy.controlId}"`);
+    const hasCommand = appTs.includes(policy.commandType) || appTs.includes(policy.commandType.replace(/\./g, "-"));
+    assert(hasId || hasCommand, `app.tsx should pass guardrail control id ${policy.controlId} or command ${policy.commandType}`);
   }
 }
 

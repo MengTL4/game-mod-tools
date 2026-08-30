@@ -14,8 +14,8 @@
 
 Create or modify these files:
 
-- Create: `tools/test-template-sync.mjs`
-- Modify: `tools/test-bridge-version-sync.mjs`
+- Create: `tools/test-template-sync.ts`
+- Modify: `tools/test-bridge-version-sync.ts`
 - Modify: `tools/launch-gui.ps1`
 - Modify: `skills/assets/zs2_modkit_template/tools/launch-gui.ps1`
 - Modify: `app/gui/tsconfig.json`
@@ -53,12 +53,12 @@ Because this directory is not a Git repository, skip commit steps. If it is late
 ### Task 1: Add Template Drift Verification
 
 **Files:**
-- Create: `tools/test-template-sync.mjs`
-- Modify: `tools/test-bridge-version-sync.mjs`
+- Create: `tools/test-template-sync.ts`
+- Modify: `tools/test-bridge-version-sync.ts`
 
 - [ ] **Step 1: Write failing template sync test**
 
-Create `tools/test-template-sync.mjs`:
+Create `tools/test-template-sync.ts`:
 
 ```js
 import assert from "node:assert/strict";
@@ -98,14 +98,14 @@ for (const [label, relativePath] of pairs) {
 Run:
 
 ```powershell
-node .\tools\test-template-sync.mjs
+node .\tools\test-template-sync.ts
 ```
 
 Expected: FAIL if runtime-only files such as `app/gui/app.js` are not included, but listed source/template files should pass after recent manual sync. If it passes immediately, keep the test because it protects later tasks.
 
 - [ ] **Step 3: Extend version sync to template compiled output policy**
 
-Modify `tools/test-bridge-version-sync.mjs` so it explicitly documents why template `app.js` is not checked:
+Modify `tools/test-bridge-version-sync.ts` so it explicitly documents why template `app.js` is not checked:
 
 ```js
 const pairs = [
@@ -134,10 +134,10 @@ Keep `runtime js` in the list. Do not add template `app.js`, because the clean t
 Run:
 
 ```powershell
-node .\tools\test-template-sync.mjs
-node .\tools\test-bridge-version-sync.mjs
-node --check .\tools\test-template-sync.mjs
-node --check .\tools\test-bridge-version-sync.mjs
+node .\tools\test-template-sync.ts
+node .\tools\test-bridge-version-sync.ts
+node --check .\tools\test-template-sync.ts
+node --check .\tools\test-bridge-version-sync.ts
 ```
 
 Expected: all commands exit `0` after any source/template drift is fixed.
@@ -242,7 +242,7 @@ Run:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -Command "[scriptblock]::Create((Get-Content -LiteralPath '.\tools\launch-gui.ps1' -Raw)) | Out-Null"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "[scriptblock]::Create((Get-Content -LiteralPath '.\skills\assets\zs2_modkit_template\tools\launch-gui.ps1' -Raw)) | Out-Null"
-node .\tools\test-template-sync.mjs
+node .\tools\test-template-sync.ts
 ```
 
 Expected: all commands exit `0`.
@@ -337,8 +337,8 @@ Push-Location .\app\gui
 npm run build
 Pop-Location
 node --check .\app\gui\app.js
-node .\tools\test-template-sync.mjs
-node .\tools\test-bridge-version-sync.mjs
+node .\tools\test-template-sync.ts
+node .\tools\test-bridge-version-sync.ts
 ```
 
 Expected: all commands exit `0`. If TypeScript reports that `Zs2Gui` cannot see IIFE-local functions, do not force namespaces into IIFE scope. Instead, keep `src/main.ts` as a build sentinel and postpone actual bootstrap extraction to Task 4 with explicit global assignment.
@@ -357,7 +357,7 @@ Expected: all commands exit `0`. If TypeScript reports that `Zs2Gui` cannot see 
 
 - [ ] **Step 1: Write failing version-source test**
 
-Add this assertion to `tools/test-bridge-version-sync.mjs`:
+Add this assertion to `tools/test-bridge-version-sync.ts`:
 
 ```js
 const runtimeConfigPath = path.join(projectRoot, "app", "gui", "src", "config.ts");
@@ -374,7 +374,7 @@ for (const file of [runtimeConfigPath, templateConfigPath]) {
 Run:
 
 ```powershell
-node .\tools\test-bridge-version-sync.mjs
+node .\tools\test-bridge-version-sync.ts
 ```
 
 Expected: FAIL because `src/config.ts` does not exist yet.
@@ -473,8 +473,8 @@ Push-Location .\app\gui
 npm run build
 Pop-Location
 node --check .\app\gui\app.js
-node .\tools\test-bridge-version-sync.mjs
-node .\tools\test-template-sync.mjs
+node .\tools\test-bridge-version-sync.ts
+node .\tools\test-template-sync.ts
 ```
 
 Expected: all commands exit `0`.
@@ -486,11 +486,11 @@ Expected: all commands exit `0`.
 **Files:**
 - Modify: `runtime/bridge/page-bridge.js`
 - Modify: `skills/assets/zs2_modkit_template/runtime/bridge/page-bridge.js`
-- Create: `tools/test-bridge-command-router.mjs`
+- Create: `tools/test-bridge-command-router.ts`
 
 - [ ] **Step 1: Write failing command router test**
 
-Create `tools/test-bridge-command-router.mjs`:
+Create `tools/test-bridge-command-router.ts`:
 
 ```js
 import assert from "node:assert/strict";
@@ -572,7 +572,7 @@ for (const command of expectedCommands) {
 Run:
 
 ```powershell
-node .\tools\test-bridge-command-router.mjs
+node .\tools\test-bridge-command-router.ts
 ```
 
 Expected: FAIL because `commandHandlers` does not exist yet.
@@ -620,11 +620,11 @@ skills/assets/zs2_modkit_template/runtime/bridge/page-bridge.js
 Run:
 
 ```powershell
-node .\tools\test-bridge-command-router.mjs
+node .\tools\test-bridge-command-router.ts
 node --check .\runtime\bridge\page-bridge.js
 node --check .\skills\assets\zs2_modkit_template\runtime\bridge\page-bridge.js
-node .\tools\test-bridge-baby-cooldowns.mjs
-node .\tools\test-template-sync.mjs
+node .\tools\test-bridge-baby-cooldowns.ts
+node .\tools\test-template-sync.ts
 ```
 
 Expected: all commands exit `0`.
@@ -640,7 +640,7 @@ Expected: all commands exit `0`.
 
 - [ ] **Step 1: Write failing status text check**
 
-Create `tools/test-gui-status-copy.mjs`:
+Create `tools/test-gui-status-copy.ts`:
 
 ```js
 import assert from "node:assert/strict";
@@ -660,7 +660,7 @@ assert.doesNotMatch(appSource, /setStatus\("error",\s*"需重启"\)/);
 Run:
 
 ```powershell
-node .\tools\test-gui-status-copy.mjs
+node .\tools\test-gui-status-copy.ts
 ```
 
 Expected: FAIL because current source still uses `需重启`.
@@ -699,10 +699,10 @@ Run:
 Push-Location .\app\gui
 npm run build
 Pop-Location
-node .\tools\test-gui-status-copy.mjs
+node .\tools\test-gui-status-copy.ts
 node --check .\app\gui\app.js
-node .\tools\test-template-sync.mjs
-node .\tools\test-bridge-version-sync.mjs
+node .\tools\test-template-sync.ts
+node .\tools\test-bridge-version-sync.ts
 ```
 
 Expected: all commands exit `0`.
@@ -725,16 +725,16 @@ Pop-Location
 node --check .\app\gui\app.js
 node --check .\runtime\bridge\page-bridge.js
 node --check .\skills\assets\zs2_modkit_template\runtime\bridge\page-bridge.js
-node --check .\tools\test-template-sync.mjs
-node --check .\tools\test-bridge-version-sync.mjs
-node --check .\tools\test-bridge-baby-cooldowns.mjs
-node --check .\tools\test-bridge-command-router.mjs
-node --check .\tools\test-gui-status-copy.mjs
-node .\tools\test-template-sync.mjs
-node .\tools\test-bridge-version-sync.mjs
-node .\tools\test-bridge-baby-cooldowns.mjs
-node .\tools\test-bridge-command-router.mjs
-node .\tools\test-gui-status-copy.mjs
+node --check .\tools\test-template-sync.ts
+node --check .\tools\test-bridge-version-sync.ts
+node --check .\tools\test-bridge-baby-cooldowns.ts
+node --check .\tools\test-bridge-command-router.ts
+node --check .\tools\test-gui-status-copy.ts
+node .\tools\test-template-sync.ts
+node .\tools\test-bridge-version-sync.ts
+node .\tools\test-bridge-baby-cooldowns.ts
+node .\tools\test-bridge-command-router.ts
+node .\tools\test-gui-status-copy.ts
 ```
 
 Expected: all commands exit `0`.

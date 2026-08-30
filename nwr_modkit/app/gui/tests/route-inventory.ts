@@ -11,21 +11,21 @@ class RouteInventoryError extends Error {
 
 const EXPECTED_ROUTES = ["manual-bg-bridge"];
 const RETIRED_TOOLS = [
-  "cdp-command-pump.mjs",
-  "extension-bridge-server.mjs",
-  "inject-bridge-cdp.mjs",
+  "cdp-command-pump.ts",
+  "extension-bridge-server.ts",
+  "inject-bridge-cdp.ts",
   "launch-cdp-runtime.ps1",
   "launch-extension-runtime.ps1",
   "launch-patched-html-runtime.ps1",
   "launch-preload-runtime.ps1",
   "launch-visible-runtime.ps1",
   "launch-wrapper-runtime.ps1",
-  "runtime-smoke.mjs"
+  "runtime-smoke.ts"
 ];
 
 function usage() {
   return [
-    "Usage: node tests/route-inventory.mjs [--expect-default <route>]",
+    "Usage: node tests/route-inventory.ts [--expect-default <route>]",
     "",
     "Asserts the runtime launcher exposes only the manual bridge route."
   ].join("\n");
@@ -159,14 +159,14 @@ function assertRetiredToolsRemoved(toolsDir) {
   if (existing.length > 0) throw new RouteInventoryError(`retired runtime tools still exist: ${formatList(existing)}`);
 }
 
-function assertManualBridgeGuiSurface(indexHtml, appSource) {
-  if (!/id="openPreparedGameBtn"/.test(indexHtml)) {
+function assertManualBridgeGuiSurface(appSource, hooksSource, envSource) {
+  if (!/id="openPreparedGameBtn"/.test(appSource)) {
     throw new RouteInventoryError("GUI must expose an open-prepared-game button after bridge preparation");
   }
-  if (!/start-manual-bg-bridge\.cmd/.test(appSource) || !/function\s+openPreparedGame\s*\(/.test(appSource)) {
+  if (!/start-manual-bg-bridge\.cmd/.test(envSource) || !/openPreparedGame/.test(hooksSource)) {
     throw new RouteInventoryError("GUI must know how to run runtime/game-app/start-manual-bg-bridge.cmd");
   }
-  if (!/function\s+refreshPreparedGameControls\s*\(/.test(appSource)) {
+  if (!/preparedGameReady\s*\(/.test(envSource)) {
     throw new RouteInventoryError("GUI must refresh prepared-game control state from the generated launcher");
   }
 }
@@ -193,8 +193,9 @@ function run() {
   );
   assertRetiredToolsRemoved(path.join(modkitDir, "tools"));
   assertManualBridgeGuiSurface(
-    readText(path.join(appDir, "index.html")),
-    readText(path.join(appDir, "app.ts"))
+    readText(path.join(appDir, "src/App.tsx")),
+    readText(path.join(appDir, "src/hooks/useAppState.ts")),
+    readText(path.join(appDir, "src/lib/env.ts"))
   );
   console.log("Runtime bridge route inventory");
   console.log(`Default route: ${defaultRoutes[0].name}`);

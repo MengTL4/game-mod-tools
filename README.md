@@ -31,6 +31,6 @@ npm run build
 - ✅ `nwr_modkit/app/save-editor`
 - ✅ `dq2_modkit/app/save-editor`
 - ✅ `*_modkit/app/gui`（NW.js 运行时修改器，静态 HTML → React + TypeScript）
-- ✅ `runtime/bridge/*.js`、`*_modkit/tools/*.mjs`（JavaScript → TypeScript）
+- ✅ `runtime/bridge/*.js`、`*_modkit/tools/*.ts`（JavaScript → TypeScript）
 
 各子项目相互独立，具体使用方法见各自目录下的 README。

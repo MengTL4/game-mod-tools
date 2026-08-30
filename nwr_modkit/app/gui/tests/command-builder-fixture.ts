@@ -17,8 +17,9 @@ export function loadBridgeCommandNamespace(sourcePath) {
   const transpiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.None, target: ts.ScriptTarget.ES2020 }
   });
-  const sandbox = {};
+  const sandbox: any = { exports: {} };
   vm.runInNewContext(transpiled.outputText, sandbox, { filename: sourcePath });
+  sandbox.NwrGuiBridgeCommands = sandbox.exports;
   if (!sandbox.NwrGuiBridgeCommands) {
     throw new CommandBuilderFixtureError("NwrGuiBridgeCommands namespace was not created");
   }

@@ -55,10 +55,10 @@ tools/launch-save-editor.ps1  启动离线存档树形编辑器
 tools/launch-runtime.ps1      只启动 bridge 版游戏
 tools/setup-runtime.ps1       从配置的游戏目录生成/刷新 NW 运行时链接
 tools/clean-runtime.ps1       清理生成的 NW 运行时链接、输出和本地依赖
-tools/trainer-send.mjs        CLI 发送修改器命令
+tools/trainer-send.ts        CLI 发送修改器命令
 tools/extract-all.ps1         导出 data.pak、useData、存档
-tools/extract-data-pak.mjs    导出 data.pak
-tools/extract-usedata.mjs     导出 useData
+tools/extract-data-pak.ts    导出 data.pak
+tools/extract-usedata.ts     导出 useData
 tools/extract-saves.ps1       导出存档
 tools/encrypt-saves.ps1       重新打包存档
 ```
@@ -241,12 +241,12 @@ zs2_modkit/skills/
 常规检查：
 
 ```powershell
-node --check .\tools\modkit-config.mjs
-node --check .\tools\extract-data-pak.mjs
-node --check .\tools\extract-usedata.mjs
-node --check .\tools\extract-saves.mjs
-node --check .\tools\encrypt-saves.mjs
-node --check .\tools\trainer-send.mjs
+node --check .\tools\modkit-config.ts
+node --check .\tools\extract-data-pak.ts
+node --check .\tools\extract-usedata.ts
+node --check .\tools\extract-saves.ts
+node --check .\tools\encrypt-saves.ts
+node --check .\tools\trainer-send.ts
 node --check .\runtime\bridge\page-bridge.js
 ```
 
@@ -271,8 +271,8 @@ Pop-Location
 .\tools\setup-runtime.ps1 -Force
 .\tools\extract-all.ps1
 .\tools\encrypt-saves.ps1
-node .\tools\trainer-send.mjs ping
-node .\tools\trainer-send.mjs trainer.hooks.info
+node .\tools\trainer-send.ts ping
+node .\tools\trainer-send.ts trainer.hooks.info
 ```
 
 `ping` 正常时会返回 `ok=true`，并确认 bridge 状态中 `hasParty`、`hasVariables`、`hasSwitches`、`hasDataManager`、`hooksPatched` 可用。进入真实战斗或设置过敌群后，`trainer.hooks.info` 的 `hookTargets` 中应能看到 `dropItemRate`、`makeDropItems` 或 BattleManager 奖励 hook。

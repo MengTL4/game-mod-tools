@@ -47,7 +47,7 @@ function assertNoUnsupportedHangupCommands(source) {
   const unsupported = ["hangup", "offlineHunt", "progress.enemyBook.unlock", "enemyBook", "skillRate"];
   const exposed = unsupported.filter((command) => source.includes(command));
   if (exposed.length > 0) {
-    throw new CliCommandPolicyError(`trainer-send.mjs exposes retired commands or options: ${formatList(exposed)}`);
+    throw new CliCommandPolicyError(`trainer-send.ts exposes retired commands or options: ${formatList(exposed)}`);
   }
 }
 
@@ -61,7 +61,7 @@ function assertGuardedPolicy(source) {
   ];
   const missing = requiredTerms.filter((term) => !source.includes(term));
   if (missing.length > 0) {
-    throw new CliCommandPolicyError(`trainer-send.mjs is missing guarded policy terms: ${formatList(missing)}`);
+    throw new CliCommandPolicyError(`trainer-send.ts is missing guarded policy terms: ${formatList(missing)}`);
   }
   if (!/NORMAL_COMMAND_TYPES[\s\S]*trainer\.options\.set/.test(source)) {
     throw new CliCommandPolicyError("trainer.options.set must remain a normal reversible command");
@@ -82,7 +82,7 @@ function assertNoRemovedCliSurface(source) {
     ...source.matchAll(removedRootCommandPattern)
   ].map((match) => match[0]);
   if (exposed.length > 0) {
-    throw new CliCommandPolicyError(`trainer-send.mjs still exposes removed commands: ${formatList([...new Set(exposed)].sort())}`);
+    throw new CliCommandPolicyError(`trainer-send.ts still exposes removed commands: ${formatList([...new Set(exposed)].sort())}`);
   }
   const helpTerms = [
     [titleRemovedRoot, "ing"].join(""),
@@ -95,7 +95,7 @@ function assertNoRemovedCliSurface(source) {
   ];
   const leakedTerms = helpTerms.filter((term) => source.includes(term));
   if (leakedTerms.length > 0) {
-    throw new CliCommandPolicyError(`trainer-send.mjs help still exposes removed terms: ${formatList(leakedTerms)}`);
+    throw new CliCommandPolicyError(`trainer-send.ts help still exposes removed terms: ${formatList(leakedTerms)}`);
   }
 }
 
@@ -135,14 +135,14 @@ function assertRequiredCliCommands(sourceName, source) {
 function assertItemKindHelpExamples(source) {
   const missing = REQUIRED_ITEM_ADD_KINDS.filter((kind) => !source.includes(`item.add ${kind} `));
   if (missing.length > 0) {
-    throw new CliCommandPolicyError(`trainer-send.mjs --help is missing item.add kind examples: ${formatList(missing)}`);
+    throw new CliCommandPolicyError(`trainer-send.ts --help is missing item.add kind examples: ${formatList(missing)}`);
   }
 }
 
 function assertTrainerOptionHelpExamples(source) {
   const missing = REQUIRED_TRAINER_OPTION_KEYS.filter((key) => !source.includes(`${key}=`));
   if (missing.length > 0) {
-    throw new CliCommandPolicyError(`trainer-send.mjs --help is missing trainer option examples: ${formatList(missing)}`);
+    throw new CliCommandPolicyError(`trainer-send.ts --help is missing trainer option examples: ${formatList(missing)}`);
   }
 }
 
@@ -156,11 +156,11 @@ function assertMalformedStateDoesNotCrash(modkitDir) {
     fs.writeFileSync(statePath, "{\"ts\":", "utf8");
     const result = cp.spawnSync(
       process.execPath,
-      [path.join(modkitDir, "tools", "trainer-send.mjs"), "status"],
+      [path.join(modkitDir, "tools", "trainer-send.ts"), "status"],
       { cwd: path.dirname(modkitDir), encoding: "utf8" }
     );
     if (result.status !== 0 || result.stdout.trim() !== "null") {
-      throw new CliCommandPolicyError("trainer-send.mjs status must tolerate malformed bridge state JSON");
+      throw new CliCommandPolicyError("trainer-send.ts status must tolerate malformed bridge state JSON");
     }
   } finally {
     if (hadState) fs.copyFileSync(backupPath, statePath);
@@ -176,10 +176,10 @@ function assertHelpDoesNotExposeRemovedCommands(modkitDir, trainerSendPath) {
     { cwd: path.dirname(modkitDir), encoding: "utf8" }
   );
   if (result.status !== 0) {
-    throw new CliCommandPolicyError(`trainer-send.mjs --help failed: ${result.stderr || result.stdout}`);
+    throw new CliCommandPolicyError(`trainer-send.ts --help failed: ${result.stderr || result.stdout}`);
   }
   assertNoRemovedCliSurface(result.stdout);
-  assertRequiredCliCommands("trainer-send.mjs --help", result.stdout);
+  assertRequiredCliCommands("trainer-send.ts --help", result.stdout);
   assertItemKindHelpExamples(result.stdout);
   assertTrainerOptionHelpExamples(result.stdout);
 }
@@ -187,13 +187,13 @@ function assertHelpDoesNotExposeRemovedCommands(modkitDir, trainerSendPath) {
 function run() {
   const testsDir = path.dirname(fileURLToPath(import.meta.url));
   const modkitDir = path.resolve(testsDir, "..", "..", "..");
-  const trainerSendPath = path.join(modkitDir, "tools", "trainer-send.mjs");
+  const trainerSendPath = path.join(modkitDir, "tools", "trainer-send.ts");
   const source = fs.readFileSync(trainerSendPath, "utf8");
   assertRemovedSurfacePolicyRejectsScopedTerms();
   assertNoUnsupportedHangupCommands(source);
   assertGuardedPolicy(source);
   assertNoRemovedCliSurface(source);
-  assertRequiredCliCommands("trainer-send.mjs", source);
+  assertRequiredCliCommands("trainer-send.ts", source);
   assertHelpDoesNotExposeRemovedCommands(modkitDir, trainerSendPath);
   assertMalformedStateDoesNotCrash(modkitDir);
   console.log("CLI command policy excludes unsupported hangup commands and guards experimental commands");

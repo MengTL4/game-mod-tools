@@ -46,7 +46,7 @@ When building from scratch or adapting to a changed game, read:
 6. Implement runtime generation before features. `setup-runtime.ps1` must create hardlinks/junctions from the resolved game install and fall back to copying runtime files if hardlinks fail; npm dependency installation must use an explicit mirror registry, defaulting to `https://registry.npmmirror.com` and supporting `-NpmRegistry`/`DQ2_NPM_REGISTRY`.
 7. Implement `clean-runtime.ps1` so it safely removes only generated artifacts.
 8. Implement extractors next: `data.pak`, `useData`, and saves. Use structured parsers and cryptographic verification; do not rely on ad hoc text parsing.
-9. Implement the runtime bridge command loop over local JSONL files, then expose commands through `trainer-send.mjs`.
+9. Implement the runtime bridge command loop over local JSONL files, then expose commands through `trainer-send.ts`.
 10. Build the external GUI last. Author GUI behavior in `app/gui/app.ts`, compile it to `app/gui/app.js` for NW, read exported data for searchable lists, and communicate only through the bridge-state command queue.
 11. Add the offline save tree editor as a separate Vite/React module. It must not depend on NW runtime files or bridge injection; it should edit local `.rpgsave` files through browser file APIs.
 12. Validate each layer independently: setup/clean, JS syntax, save-editor build, data extraction, save round-trip encryption, bridge status, GUI smoke.

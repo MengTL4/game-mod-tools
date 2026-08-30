@@ -12,7 +12,7 @@
 
 ## File Structure
 
-- Create: `tools/test-gui-phase2-modules.mjs`
+- Create: `tools/test-gui-phase2-modules.ts`
 - Create: `app/gui/src/paths.ts`
 - Create: `app/gui/src/dom.ts`
 - Create: `app/gui/src/bridge-client.ts`
@@ -22,12 +22,12 @@
 - Modify: `skills/assets/zs2_modkit_template/app/gui/app.ts`
 - Modify: `app/gui/tsconfig.json`
 - Modify: `skills/assets/zs2_modkit_template/app/gui/tsconfig.json`
-- Modify: `tools/test-template-sync.mjs`
+- Modify: `tools/test-template-sync.ts`
 
 ## Task 1: Add Phase 2 Module Guard
 
-- [ ] Create `tools/test-gui-phase2-modules.mjs` that checks the new module files exist in runtime and template, are listed in both GUI tsconfig files, and that `app.ts` no longer defines the catalog-loader functions.
-- [ ] Run `node .\tools\test-gui-phase2-modules.mjs` and confirm it fails before implementation.
+- [ ] Create `tools/test-gui-phase2-modules.ts` that checks the new module files exist in runtime and template, are listed in both GUI tsconfig files, and that `app.ts` no longer defines the catalog-loader functions.
+- [ ] Run `node .\tools\test-gui-phase2-modules.ts` and confirm it fails before implementation.
 
 ## Task 2: Extract Catalog Loading
 
@@ -53,11 +53,11 @@
 - [ ] Run `npm run build` in `app/gui`.
 - [ ] Run syntax checks for compiled GUI, bridge scripts, and test scripts.
 - [ ] Run all regression scripts:
-  - `node .\tools\test-template-sync.mjs`
-  - `node .\tools\test-bridge-version-sync.mjs`
-  - `node .\tools\test-bridge-baby-cooldowns.mjs`
-  - `node .\tools\test-bridge-command-router.mjs`
-  - `node .\tools\test-gui-status-copy.mjs`
-  - `node .\tools\test-gui-phase2-modules.mjs`
+  - `node .\tools\test-template-sync.ts`
+  - `node .\tools\test-bridge-version-sync.ts`
+  - `node .\tools\test-bridge-baby-cooldowns.ts`
+  - `node .\tools\test-bridge-command-router.ts`
+  - `node .\tools\test-gui-status-copy.ts`
+  - `node .\tools\test-gui-phase2-modules.ts`
 
 Because this directory is not a Git repository, skip commit steps.

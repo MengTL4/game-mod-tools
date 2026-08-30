@@ -20,7 +20,7 @@ function assert(condition, message) {
 
 function usage() {
   return [
-    "Usage: node tests/route-selector-contract.mjs [--expect-default <route>]",
+    "Usage: node tests/route-selector-contract.ts [--expect-default <route>]",
     "",
     "Asserts GUI route selector options map to documented runtime launcher switches."
   ].join("\n");
@@ -60,8 +60,9 @@ function loadRoutes(appDir) {
   const transpiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.None, target: ts.ScriptTarget.ES2020 }
   });
-  const sandbox = {};
+  const sandbox: any = { exports: {} };
   vm.runInNewContext(transpiled.outputText, sandbox, { filename: sourcePath });
+  sandbox.NwrGuiRuntimeRoutes = sandbox.exports;
   if (!sandbox.NwrGuiRuntimeRoutes) throw new RouteSelectorContractError("NwrGuiRuntimeRoutes namespace was not created");
   return sandbox.NwrGuiRuntimeRoutes;
 }

@@ -57,8 +57,8 @@ nwr_modkit/
 .\tools\encrypt-data.ps1
 .\tools\extract-saves.ps1
 .\tools\encrypt-saves.ps1
-node .\tools\probe-data-key.mjs --game-root .
-node .\tools\diagnose-prison-checks.mjs --game-root .
+npx tsx .\tools\probe-data-key.ts --game-root .
+npx tsx .\tools\diagnose-prison-checks.ts --game-root .
 ```
 
 ## NOTES

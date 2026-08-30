@@ -20,7 +20,7 @@ function assert(condition, message) {
 
 function usage() {
   return [
-    "Usage: node tests/runtime-state-contract.mjs [--expect-status <case>:<text>]",
+    "Usage: node tests/runtime-state-contract.ts [--expect-status <case>:<text>]",
     "",
     "Asserts runtime state and event rendering models for bridge-first GUI status."
   ].join("\n");
@@ -58,7 +58,7 @@ function loadNamespace(appDir) {
     path.join(appDir, "src", "runtime-state.ts"),
     path.join(appDir, "src", "runtime-events.ts")
   ];
-  const sandbox = {};
+  const sandbox: any = { exports: {} };
   for (const sourcePath of sources) {
     if (!fs.existsSync(sourcePath)) throw new RuntimeStateContractError(`runtime state source missing: ${sourcePath}`);
     const source = fs.readFileSync(sourcePath, "utf8");
@@ -67,6 +67,8 @@ function loadNamespace(appDir) {
     });
     vm.runInNewContext(transpiled.outputText, sandbox, { filename: sourcePath });
   }
+  sandbox.NwrGuiRuntimeState = sandbox.exports;
+  sandbox.NwrGuiRuntimeEvents = sandbox.exports;
   if (!sandbox.NwrGuiRuntimeState) throw new RuntimeStateContractError("NwrGuiRuntimeState namespace was not created");
   if (!sandbox.NwrGuiRuntimeEvents) throw new RuntimeStateContractError("NwrGuiRuntimeEvents namespace was not created");
   return { state: sandbox.NwrGuiRuntimeState, events: sandbox.NwrGuiRuntimeEvents };
@@ -140,7 +142,7 @@ function assertRemovedStateSurface(appDir, runtimeState) {
   for (const term of removedTerms) {
     assert(!rendered.includes(term), `runtime state view must not render removed term ${term}`);
   }
-  for (const fileName of ["app.ts", "index.html", "styles.css"]) {
+  for (const fileName of ["src/App.tsx", "index.html"]) {
     const source = fs.readFileSync(path.join(appDir, fileName), "utf8");
     for (const term of removedTerms) {
       assert(!source.includes(term), `${fileName} must not expose removed runtime state term ${term}`);

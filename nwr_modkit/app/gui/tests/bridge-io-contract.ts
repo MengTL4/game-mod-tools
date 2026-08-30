@@ -17,7 +17,7 @@ const ts = require("typescript");
 
 function usage() {
   return [
-    "Usage: node tests/bridge-io-contract.mjs [--expect-type <command-type>]",
+    "Usage: node tests/bridge-io-contract.ts [--expect-type <command-type>]",
     "",
     "Runs the bridge IO module against a temp bridge-state directory."
   ].join("\n");
@@ -65,8 +65,9 @@ function loadBridgeIo(sourcePath) {
       target: ts.ScriptTarget.ES2020
     }
   });
-  const sandbox = {};
+  const sandbox: any = { exports: {} };
   vm.runInNewContext(transpiled.outputText, sandbox, { filename: sourcePath });
+  sandbox.NwrGuiBridgeIO = sandbox.exports;
   const bridgeIo = sandbox.NwrGuiBridgeIO;
   if (!bridgeIo || typeof bridgeIo !== "object") {
     throw new BridgeIoContractError("NwrGuiBridgeIO namespace was not created");

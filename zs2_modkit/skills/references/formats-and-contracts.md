@@ -292,15 +292,15 @@ title.refresh
 CLI aliases may accept positional or key-value forms:
 
 ```powershell
-node .\tools\trainer-send.mjs item.add item 5 10
-node .\tools\trainer-send.mjs trainer.options.set expRate=10 noSkillCost=true
-node .\tools\trainer-send.mjs battle.start 2
-node .\tools\trainer-send.mjs battle.start variableId=399
-node .\tools\trainer-send.mjs talent.points.add party 10
-node .\tools\trainer-send.mjs baby.skill.learn 1001 1890 passive
-node .\tools\trainer-send.mjs baby.slots.set 1001 5
-node .\tools\trainer-send.mjs map.through.set true
-node .\tools\trainer-send.mjs offlineHunt.run mapId=31 times=10 enemyBook=true
+node .\tools\trainer-send.ts item.add item 5 10
+node .\tools\trainer-send.ts trainer.options.set expRate=10 noSkillCost=true
+node .\tools\trainer-send.ts battle.start 2
+node .\tools\trainer-send.ts battle.start variableId=399
+node .\tools\trainer-send.ts talent.points.add party 10
+node .\tools\trainer-send.ts baby.skill.learn 1001 1890 passive
+node .\tools\trainer-send.ts baby.slots.set 1001 5
+node .\tools\trainer-send.ts map.through.set true
+node .\tools\trainer-send.ts offlineHunt.run mapId=31 times=10 enemyBook=true
 ```
 
 Validate numeric fields with clear errors. The bridge should return failure events rather than throwing out of the polling loop.
@@ -414,12 +414,12 @@ npm.cmd --version
 Syntax:
 
 ```powershell
-node --check .\tools\modkit-config.mjs
-node --check .\tools\extract-data-pak.mjs
-node --check .\tools\extract-usedata.mjs
-node --check .\tools\extract-saves.mjs
-node --check .\tools\encrypt-saves.mjs
-node --check .\tools\trainer-send.mjs
+node --check .\tools\modkit-config.ts
+node --check .\tools\extract-data-pak.ts
+node --check .\tools\extract-usedata.ts
+node --check .\tools\extract-saves.ts
+node --check .\tools\encrypt-saves.ts
+node --check .\tools\trainer-send.ts
 node --check .\runtime\bridge\page-bridge.js
 ```
 
@@ -444,9 +444,9 @@ Runtime:
 .\tools\setup-runtime.ps1 -Force
 .\tools\extract-all.ps1
 .\tools\encrypt-saves.ps1
-node .\tools\trainer-send.mjs status
-node .\tools\trainer-send.mjs ping
-node .\tools\trainer-send.mjs trainer.hooks.info
+node .\tools\trainer-send.ts status
+node .\tools\trainer-send.ts ping
+node .\tools\trainer-send.ts trainer.hooks.info
 ```
 
 Skill:

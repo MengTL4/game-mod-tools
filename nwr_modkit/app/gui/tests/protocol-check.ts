@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadBridgeCommandNamespace, sampleBridgeCommands } from "./command-builder-fixture.mjs";
-import { assertApprovedDiagnosticCommands } from "./protocol-policy.mjs";
+import { loadBridgeCommandNamespace, sampleBridgeCommands } from "./command-builder-fixture.ts";
+import { assertApprovedDiagnosticCommands } from "./protocol-policy.ts";
 
 const GUI_SEND_COMMAND_PATTERN = /sendCommand\s*\(\s*\{[\s\S]*?type:\s*["']([^"']+)["']/g;
 const BRIDGE_HANDLER_PATTERN = /\btype\s*===\s*["']([^"']+)["']/g;
@@ -18,7 +18,7 @@ class ProtocolCheckError extends Error {
 
 function usage() {
   return [
-    "Usage: node tests/protocol-check.mjs [--expect-command <type>] [--expect-bridge-version <version>]",
+    "Usage: node tests/protocol-check.ts [--expect-command <type>] [--expect-bridge-version <version>]",
     "",
     "Compares GUI-emitted bridge command types with the manual page bridge handlers.",
     "--expect-command adds an expected command type for negative QA fixtures.",
@@ -86,7 +86,7 @@ function collectMatches(sourceText, pattern) {
   return values;
 }
 
-function sorted(values) {
+function sorted(values: Iterable<string>) {
   return Array.from(values).sort((left, right) => left.localeCompare(right));
 }
 
@@ -202,18 +202,20 @@ function run() {
   const metadata = parseProtocolMetadata(path.join(appDir, "protocol-metadata.json"));
   assertApprovedDiagnosticCommands(metadata.diagnosticCommandNames);
   const expectedBridgeVersion = options.bridgeVersionOverride ?? metadata.expectedBridgeVersion;
-  const appSource = readText(path.join(appDir, "app.ts"));
+  const appSource = readText(path.join(appDir, "src/App.tsx"));
+  const hooksSource = readText(path.join(appDir, "src/hooks/useAppState.ts"));
+  const combinedSource = `${appSource}\n${hooksSource}`;
   const bridgeCommandSource = path.join(appDir, "src", "bridge-commands.ts");
   const mainBridgeSource = readText(path.join(modkitDir, "runtime", "bridge", "page-bridge.js"));
 
-  const inlineCommands = collectGuiCommandTypes(appSource, new Set(), []);
+  const inlineCommands = collectGuiCommandTypes(combinedSource, new Set(), []);
   const builderCommands = new Set(
     sampleBridgeCommands(loadBridgeCommandNamespace(bridgeCommandSource)).map((command) => command.type)
   );
-  const guiCommands = collectGuiCommandTypes(appSource, builderCommands, options.extraCommands);
+  const guiCommands = collectGuiCommandTypes(combinedSource, builderCommands, options.extraCommands);
   const mainHandlers = collectBridgeHandlers(mainBridgeSource);
   const versions = {
-    gui: parseFirstGroup("GUI source", appSource, GUI_EXPECTED_VERSION_PATTERN, "EXPECTED_BRIDGE_VERSION"),
+    gui: parseFirstGroup("GUI source", combinedSource, GUI_EXPECTED_VERSION_PATTERN, "EXPECTED_BRIDGE_VERSION"),
     main: parseFirstGroup("manual bridge", mainBridgeSource, BRIDGE_VERSION_PATTERN, "version")
   };
   assertNonEmpty("GUI command scan", guiCommands);

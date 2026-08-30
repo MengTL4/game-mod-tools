@@ -13,11 +13,11 @@
 ### Task 1: UI Guard Test
 
 **Files:**
-- Create: `tools/test-gui-ui-refresh.mjs`
-- Modify: `tools/test-template-sync.mjs`
+- Create: `tools/test-gui-ui-refresh.ts`
+- Modify: `tools/test-template-sync.ts`
 
 - [ ] Add a test that asserts topbar shell classes, navigation label hints, action intent classes, typed toast classes, and `aria-current` support.
-- [ ] Run `node .\tools\test-gui-ui-refresh.mjs` and confirm it fails before implementation.
+- [ ] Run `node .\tools\test-gui-ui-refresh.ts` and confirm it fails before implementation.
 
 ### Task 2: HTML Semantics and Intent Classes
 
@@ -30,7 +30,7 @@
 - [ ] Add brand/status wrapper classes to the topbar.
 - [ ] Add `data-nav-label` and `data-nav-hint` spans inside top-level nav buttons.
 - [ ] Add `primary`, `danger`, `warning`, or `ghost` classes to high-impact buttons without changing IDs.
-- [ ] Run `node .\tools\build-gui-html.mjs`.
+- [ ] Run `node .\tools\build-gui-html.ts`.
 
 ### Task 3: Visual System CSS
 
@@ -63,8 +63,8 @@
 **Files:** Existing test suite.
 
 - [ ] Run GUI build and syntax checks.
-- [ ] Run `node .\tools\test-gui-ui-refresh.mjs`.
+- [ ] Run `node .\tools\test-gui-ui-refresh.ts`.
 - [ ] Run existing GUI and bridge regression scripts.
-- [ ] Run `node .\tools\test-template-sync.mjs`.
+- [ ] Run `node .\tools\test-template-sync.ts`.
 
 No commit step because this workspace is not a normal Git repository.

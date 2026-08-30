@@ -152,8 +152,8 @@ Pop-Location
 node --check .\app\gui\app.js
 node --check .\runtime\bridge\page-bridge.js
 node --check .\skills\assets\zs2_modkit_template\runtime\bridge\page-bridge.js
-node .\tools\test-bridge-version-sync.mjs
-node .\tools\test-bridge-baby-cooldowns.mjs
+node .\tools\test-bridge-version-sync.ts
+node .\tools\test-bridge-baby-cooldowns.ts
 ```
 
 New checks should cover:

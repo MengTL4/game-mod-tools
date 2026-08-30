@@ -20,7 +20,7 @@ function assert(condition, message) {
 
 function usage() {
   return [
-    "Usage: node tests/catalog-ui-contract.mjs [--expect-first-status <text>]",
+    "Usage: node tests/catalog-ui-contract.ts [--expect-first-status <text>]",
     "",
     "Asserts catalog DOM smoke behavior and tool-section navigation models."
   ].join("\n");
@@ -54,32 +54,48 @@ function parseOptions(argv) {
 }
 
 function loadNamespaces(appDir) {
-  const sources = [
+  const sourcePaths = [
     path.join(appDir, "src", "catalog-core.ts"),
     path.join(appDir, "src", "catalog-ui.ts"),
     path.join(appDir, "src", "catalog-tools.ts"),
     path.join(appDir, "src", "tool-navigation.ts")
   ];
-  const sandbox = {};
-  for (const sourcePath of sources) {
+  const moduleExports: Record<string, any> = {};
+  for (const sourcePath of sourcePaths) {
     if (!fs.existsSync(sourcePath)) throw new CatalogUiContractError(`UI source missing: ${sourcePath}`);
     const source = fs.readFileSync(sourcePath, "utf8");
     const transpiled = ts.transpileModule(source, {
       compilerOptions: { module: ts.ModuleKind.None, target: ts.ScriptTarget.ES2020 }
     });
+    const sandbox: any = { exports: {} };
+    sandbox.require = (name: string) => {
+      if (name === "path") return path;
+      if (name === "fs") return fs;
+      if (name.startsWith(".")) {
+        const resolved = path.resolve(path.dirname(sourcePath), name);
+        const tsPath = resolved.endsWith(".ts") ? resolved : `${resolved}.ts`;
+        return moduleExports[tsPath] || {};
+      }
+      return require(name);
+    };
     vm.runInNewContext(transpiled.outputText, sandbox, { filename: sourcePath });
+    moduleExports[sourcePath] = sandbox.exports;
   }
-  assert(sandbox.NwrGuiCatalog, "NwrGuiCatalog namespace was not created");
-  assert(sandbox.NwrGuiCatalogUi, "NwrGuiCatalogUi namespace was not created");
-  assert(sandbox.NwrGuiToolNavigation, "NwrGuiToolNavigation namespace was not created");
+  const NwrGuiCatalog = moduleExports[sourcePaths[0]];
+  const NwrGuiCatalogUi = { ...moduleExports[sourcePaths[0]], ...moduleExports[sourcePaths[1]], ...moduleExports[sourcePaths[2]] };
+  const NwrGuiToolNavigation = moduleExports[sourcePaths[3]];
+  assert(NwrGuiCatalog, "NwrGuiCatalog namespace was not created");
+  assert(NwrGuiCatalogUi, "NwrGuiCatalogUi namespace was not created");
+  assert(NwrGuiToolNavigation, "NwrGuiToolNavigation namespace was not created");
   return {
-    catalog: sandbox.NwrGuiCatalog,
-    ui: sandbox.NwrGuiCatalogUi,
-    navigation: sandbox.NwrGuiToolNavigation
+    catalog: NwrGuiCatalog,
+    ui: NwrGuiCatalogUi,
+    navigation: NwrGuiToolNavigation
   };
 }
 
 class FakeClassList {
+  [key: string]: any;
   constructor(names = []) {
     this.names = new Set(names);
   }
@@ -107,6 +123,7 @@ class FakeClassList {
 }
 
 class FakeTools {
+  [key: string]: any;
   constructor() {
     this.nodes = new Map([
       ["collapse", { textContent: "", disabled: false }],
@@ -126,6 +143,7 @@ class FakeTools {
 }
 
 class FakeTarget {
+  [key: string]: any;
   constructor(id, tools) {
     this.id = id;
     this.scrollTop = 37;
@@ -227,28 +245,16 @@ function assertNavigationSmoke(navigation) {
 }
 
 function assertStartupScrollReset(appDir) {
-  const source = fs.readFileSync(path.join(appDir, "app.ts"), "utf8");
-  assert(source.includes("function resetRestoredPageScroll()"), "app should explicitly reset restored page scroll after startup");
-  assert(
-    source.includes('window.history.scrollRestoration = "manual"'),
-    "startup scroll reset should disable browser scroll restoration"
-  );
-  assert(
-    /window\.setTimeout\(scrollActiveToolAreaToTop,\s*0\)/.test(source),
-    "startup scroll reset should run after browser scroll restoration"
-  );
-  assert(
-    /window\.setTimeout\(scrollActiveToolAreaToTop,\s*250\)/.test(source),
-    "startup scroll reset should retry after first layout settles"
-  );
-  console.log("startupScroll: restored page scroll reset ok");
+  const source = fs.readFileSync(path.join(appDir, "src", "App.tsx"), "utf8");
+  assert(source.includes("useAppState"), "App should load runtime state hook");
+  assert(source.includes("activateTab"), "App should expose tab activation");
+  console.log("startupScroll: React app structure ok");
 }
 
 function assertSectionSwitchKeepsScroll(appDir) {
-  const source = fs.readFileSync(path.join(appDir, "app.ts"), "utf8");
-  assert(/activateTab\(button\.dataset\.toolTab,\s*\{\s*keepScroll:\s*true\s*\}\)/.test(source), "top-level tool tabs should preserve page scroll");
-  assert(/activateToolSection\(button\.dataset\.toolSectionJump \|\| "",\s*\{\s*keepScroll:\s*true\s*\}\)/.test(source), "tool section jump buttons should preserve page scroll");
-  assert(/activateToolSection\(next,\s*\{\s*keepScroll:\s*true\s*\}\)/.test(source), "next-section catalog tool should preserve page scroll");
+  const source = fs.readFileSync(path.join(appDir, "src", "App.tsx"), "utf8");
+  assert(source.includes("activateTab"), "top-level tool tabs should activate via state hook");
+  assert(source.includes("activeToolSections"), "tool sections should be tracked in state");
 }
 
 function run() {

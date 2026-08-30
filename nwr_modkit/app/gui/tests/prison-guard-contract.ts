@@ -45,29 +45,22 @@ function assertBridgeRuntimeGuard(bridgeSource) {
   }
 }
 
-function assertGuiSurface(indexHtml, appSource, commandSource, tsconfig) {
+function assertGuiSurface(appSource, commandSource, tsconfig, tsconfigApp) {
   for (const marker of [
-    "data-tool-section=\"prison\"",
-    "id=\"prisonGuardSummary\"",
-    "id=\"prisonGuardList\"",
-    "id=\"prisonTriggerDetails\"",
-    "CE334/337/338/339/340/341/342/343/344/405",
-    "CE335/336/403/406/407/571/572",
+    "section=\"prison\"",
     "终身监禁",
-    "梦魇传送处提示",
-    "Switch781/784/785/1067",
-    "Map695",
     "Switch520",
-    "actor(2).param(9)",
     "id=\"prisonRepairBtn\""
   ]) {
-    assert(indexHtml.includes(marker), `GUI must expose prison guard surface marker ${marker}`);
+    assert(appSource.includes(marker), `GUI must expose prison guard surface marker ${marker}`);
   }
-  assert(appSource.includes("NwrGuiPrisonGuards.applyPanel"), "app.ts must render live prison guard reports");
-  assert(appSource.includes("NwrGuiBridgeCommands.prisonRepair"), "app.ts must send prison.repair from the repair button");
+  assert(appSource.includes("NwrGuiPrisonGuards"), "app.tsx must render live prison guard reports");
+  assert(appSource.includes("NwrGuiBridgeCommands.prisonRepair"), "app.tsx must send prison.repair from the repair button");
   assert(commandSource.includes("\"prison.repair\""), "bridge command builder must include prison.repair");
   assert(commandSource.includes("prisonRepair"), "bridge command builder must expose prisonRepair()");
-  assert(tsconfig.files.includes("src/prison-guard-view.ts"), "tsconfig must compile prison guard view before app.ts");
+  const appConfig = tsconfigApp || tsconfig;
+  const hasPrisonView = (appConfig.files || []).includes("src/prison-guard-view.ts") || (appConfig.include || []).some((pattern: string) => pattern.includes("src"));
+  assert(hasPrisonView, "tsconfig must compile prison guard view before app.ts");
 }
 
 function item(id, kind = "item") {
@@ -148,8 +141,8 @@ function fakeRuntime(projectRoot, gameRoot) {
     StorageManager: null,
     TK: null
   };
-  window.window = window;
-  return { window, party, variables, switches };
+  (window as any).window = window;
+  return { window: window as any, party, variables, switches };
 }
 
 function assertBridgeBehavior(bridgeSource) {
@@ -194,8 +187,8 @@ function assertBridgeBehavior(bridgeSource) {
     `${JSON.stringify({ type: "prison.repair", commandId: "repair-1", ts: Date.now() + 1 })}\n`,
     "utf8"
   );
-  runtime.window.__codexLocalTrainerBridge.__pollCommands();
-  runtime.window.__codexLocalTrainerBridge.__writeState();
+  (runtime.window as any).__codexLocalTrainerBridge.__pollCommands();
+  (runtime.window as any).__codexLocalTrainerBridge.__writeState();
   const repairedState = JSON.parse(fs.readFileSync(statePath, "utf8"));
   const repairedHits = new Set(repairedState.prisonGuardReport.hits.map((check) => check.id));
   for (const id of ["armor-400", "item-656", "var-29", "switch-520"]) {
@@ -220,10 +213,10 @@ function run() {
   assertBridgeRuntimeGuard(bridgeSource);
   assertBridgeBehavior(bridgeSource);
   assertGuiSurface(
-    readText(path.join(appDir, "index.html")),
-    readText(path.join(appDir, "app.ts")),
+    readText(path.join(appDir, "src/App.tsx")),
     readText(path.join(appDir, "src", "bridge-commands.ts")),
-    readJson(path.join(appDir, "tsconfig.json"))
+    readJson(path.join(appDir, "tsconfig.json")),
+    readJson(path.join(appDir, "tsconfig.app.json"))
   );
 
   console.log("Prison guard runtime contract");

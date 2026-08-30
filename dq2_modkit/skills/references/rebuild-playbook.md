@@ -163,18 +163,18 @@ dq2_modkit/
   tools/
     package.json
     modkit-config.ps1
-    modkit-config.mjs
+    modkit-config.ts
     setup-runtime.ps1
     clean-runtime.ps1
     launch-gui.ps1
     launch-save-editor.ps1
     launch-runtime.ps1
-    trainer-send.mjs
-    extract-bytecode-bundles.mjs
-    extract-data-pak.mjs
-    extract-usedata.mjs
+    trainer-send.ts
+    extract-bytecode-bundles.ts
+    extract-data-pak.ts
+    extract-usedata.ts
     extract-saves.ps1
-    encrypt-saves.mjs
+    encrypt-saves.ts
     encrypt-saves.ps1
     extract-all.ps1
   output/
@@ -266,7 +266,7 @@ runtime/trainer
 runtime/save-harness
 ```
 
-Author `app/gui` behavior in TypeScript (`app.ts`) and compile it to `app.js`, because the NW package still loads `app.js` from `index.html`. `launch-gui.ps1` should rebuild when `app.ts` is newer than `app.js`, using the configured npm registry. It should also ensure `data.pak` has been extracted to `output/extract/data` before opening the GUI, rerunning `extract-data-pak.mjs` when required JSON files are missing or `www/data.pak` is newer than the extracted `_index.json`.
+Author `app/gui` behavior in TypeScript (`app.ts`) and compile it to `app.js`, because the NW package still loads `app.js` from `index.html`. `launch-gui.ps1` should rebuild when `app.ts` is newer than `app.js`, using the configured npm registry. It should also ensure `data.pak` has been extracted to `output/extract/data` before opening the GUI, rerunning `extract-data-pak.ts` when required JSON files are missing or `www/data.pak` is newer than the extracted `_index.json`.
 
 Do not include `app/save-editor` in these NW runtime targets. It is a Vite browser app and should not receive `Game.exe`, `nw.dll`, or junctions.
 
@@ -282,7 +282,7 @@ It must verify every target path stays under `dq2_modkit`. It must refuse ordina
 
 ## 7. Data Extractors
 
-Implement `extract-data-pak.mjs` for:
+Implement `extract-data-pak.ts` for:
 
 ```text
 www/manifest.enc
@@ -297,7 +297,7 @@ dq2_modkit/output/extract/data
 
 Use the manifest key to decrypt the PAKX index and entries, then unpack PAK1 and the old AES JSON envelope. See `formats-and-contracts.md` for exact cryptographic details.
 
-Implement `extract-usedata.mjs` for:
+Implement `extract-usedata.ts` for:
 
 ```text
 www/useData/*.data
@@ -311,7 +311,7 @@ gzip inflate -> skip 20-byte prefix -> MessagePack decode
 
 Write `.json`, `.msgpack`, and `_index.json`.
 
-Implement `extract-bytecode-bundles.mjs` for:
+Implement `extract-bytecode-bundles.ts` for:
 
 ```text
 www/js/core.jsc.pak
@@ -441,8 +441,8 @@ cd "<dq2_modkit>"
 .\tools\clean-runtime.ps1 -DryRun
 node --check .\runtime\bridge\page-bridge.js
 node --check .\app\gui\app.js
-node --check .\tools\modkit-config.mjs
-node --check .\tools\trainer-send.mjs
+node --check .\tools\modkit-config.ts
+node --check .\tools\trainer-send.ts
 Push-Location .\app\gui; npm.cmd run build; Pop-Location
 Push-Location .\app\save-editor; npm.cmd run build; Pop-Location
 .\tools\extract-all.ps1

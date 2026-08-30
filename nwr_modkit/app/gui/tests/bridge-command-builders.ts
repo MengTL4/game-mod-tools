@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadBridgeCommandNamespace, sampleBridgeCommands } from "./command-builder-fixture.mjs";
+import { loadBridgeCommandNamespace, sampleBridgeCommands } from "./command-builder-fixture.ts";
 
 class CommandBuilderError extends Error {
   constructor(message) {

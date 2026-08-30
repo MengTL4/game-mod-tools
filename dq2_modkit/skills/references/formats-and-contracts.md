@@ -332,9 +332,9 @@ trainer.hooks.info
 CLI aliases may accept positional forms, for example:
 
 ```powershell
-node .\trainer-send.mjs item.add item 5 10
-node .\trainer-send.mjs actor.skill.learn 1 10
-node .\trainer-send.mjs trainer.options.set expRate=10 noSkillCost=true
+node .\trainer-send.ts item.add item 5 10
+node .\trainer-send.ts actor.skill.learn 1 10
+node .\trainer-send.ts trainer.options.set expRate=10 noSkillCost=true
 ```
 
 Validate numeric fields with clear errors. The bridge should return `FAIL` events rather than throwing out of the polling loop.
@@ -438,18 +438,18 @@ Override parameter: -NpmRegistry
 Override environment: DQ2_NPM_REGISTRY
 ```
 
-`setup-runtime.ps1` installs tool/save-harness dependencies. `launch-save-editor.ps1` installs `app/save-editor` dependencies. `launch-gui.ps1` installs `app/gui` dependencies only when the TypeScript source needs rebuilding, and it must auto-run `extract-data-pak.mjs` when `output/extract/data` is missing or older than `www/data.pak` so GUI lists are available on first launch. Scripts that may install dependencies should pass through `-NpmRegistry` or respect `DQ2_NPM_REGISTRY`.
+`setup-runtime.ps1` installs tool/save-harness dependencies. `launch-save-editor.ps1` installs `app/save-editor` dependencies. `launch-gui.ps1` installs `app/gui` dependencies only when the TypeScript source needs rebuilding, and it must auto-run `extract-data-pak.ts` when `output/extract/data` is missing or older than `www/data.pak` so GUI lists are available on first launch. Scripts that may install dependencies should pass through `-NpmRegistry` or respect `DQ2_NPM_REGISTRY`.
 
 Syntax:
 
 ```powershell
 cd "<dq2_modkit>"
-node --check .\tools\modkit-config.mjs
-node --check .\tools\extract-bytecode-bundles.mjs
-node --check .\tools\extract-data-pak.mjs
-node --check .\tools\extract-usedata.mjs
-node --check .\tools\encrypt-saves.mjs
-node --check .\tools\trainer-send.mjs
+node --check .\tools\modkit-config.ts
+node --check .\tools\extract-bytecode-bundles.ts
+node --check .\tools\extract-data-pak.ts
+node --check .\tools\extract-usedata.ts
+node --check .\tools\encrypt-saves.ts
+node --check .\tools\trainer-send.ts
 node --check .\runtime\bridge\page-bridge.js
 node --check .\app\gui\app.js
 Push-Location .\app\gui
@@ -478,7 +478,7 @@ Extraction and save round trip:
 CLI bridge checks after launching the bridge game:
 
 ```powershell
-node .\tools\trainer-send.mjs status
-node .\tools\trainer-send.mjs ping
-node .\tools\trainer-send.mjs trainer.hooks.info
+node .\tools\trainer-send.ts status
+node .\tools\trainer-send.ts ping
+node .\tools\trainer-send.ts trainer.hooks.info
 ```

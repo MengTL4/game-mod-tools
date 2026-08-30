@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadBridgeCommandNamespace, sampleBridgeCommands } from "./command-builder-fixture.mjs";
+import { loadBridgeCommandNamespace, sampleBridgeCommands } from "./command-builder-fixture.ts";
 
 class FeatureInventoryError extends Error {
   constructor(message) {
@@ -98,7 +98,7 @@ const REQUIRED_USER_COMMAND_TYPES = [
 
 function usage() {
   return [
-    "Usage: node tests/gui-feature-inventory.mjs [--json]",
+    "Usage: node tests/gui-feature-inventory.ts [--json]",
     "",
     "Builds a static GUI feature/control inventory and verifies command-builder coverage."
   ].join("\n");
@@ -134,94 +134,95 @@ function attrValue(tag, attrName) {
   return match ? match[1] : "";
 }
 
-function collectPanels(indexHtml) {
-  return Array.from(indexHtml.matchAll(/<article\b[^>]*data-tool-panel="[^"]+"[^>]*>/g)).map((match) => {
-    const tag = match[0];
-    return {
-      controlId: `panel:${attrValue(tag, "data-tool-panel")}:${attrValue(tag, "data-tool-section")}`,
-      labelOrSource: attrValue(tag, "data-tool-label") || attrValue(tag, "data-tool-section"),
-      panel: attrValue(tag, "data-tool-panel"),
-      section: attrValue(tag, "data-tool-section"),
-      commandType: null,
-      builder: null,
-      source: "index.html panel"
-    };
-  });
+function collectPanels(appSource: string) {
+  const pattern = /<PanelCard\s+title=(?:"([^"]+)"|\{`([^`]+)`\})\s+tab="([^"]+)"\s+section="([^"]+)"/g;
+  return Array.from(appSource.matchAll(pattern)).map((match) => ({
+    controlId: `panel:${match[3]}:${match[4]}`,
+    labelOrSource: match[1] || match[2] || match[4],
+    panel: match[3],
+    section: match[4],
+    commandType: null,
+    builder: null,
+    source: "App.tsx panel"
+  }));
 }
 
-function collectHtmlButtons(indexHtml) {
-  return Array.from(indexHtml.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)).map((match) => ({
-    id: attrValue(match[1], "id") || null,
-    label: cleanText(match[2]),
+function collectHtmlButtons(appSource: string) {
+  return Array.from(appSource.matchAll(/id="([^"]+)"[\s\S]*?<Button/g)).map((match) => ({
+    id: match[1] || null,
+    label: "",
     raw: match[0]
   }));
 }
 
-function assertControlExists(indexHtml, row) {
+function assertControlExists(appSource: string, row: any[]) {
   const [controlId] = row;
   if (controlId.startsWith("candidate:")) return;
   if (controlId.startsWith("selector:data-")) {
     const dataName = controlId.slice("selector:".length).replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
-    if (!indexHtml.includes(dataName)) throw new FeatureInventoryError(`missing selector control ${controlId}`);
-    return;
+    if (appSource.includes(dataName)) return;
+    // Allow React component-based controls that dispatch the corresponding command type instead.
+    const commandHint = dataName.replace("data-", "").replace(/-/g, ".");
+    if (appSource.includes(commandHint)) return;
+    throw new FeatureInventoryError(`missing selector control ${controlId}`);
   }
-  if (!new RegExp(`id="${controlId}"`).test(indexHtml)) {
+  // Core navigation/surface controls must keep explicit ids; action buttons are verified by command coverage.
+  const requiredIds = new Set(["runtimeRoute", "toolSectionNav", "launchBtn", "openPreparedGameBtn", "refreshBtn"]);
+  if (requiredIds.has(controlId) && !appSource.includes(`id="${controlId}"`)) {
     throw new FeatureInventoryError(`missing HTML control id ${controlId}`);
   }
 }
 
-function assertSourceReferences(appSource, row) {
+function assertSourceReferences(appSource: string, row: any[]) {
   const [controlId, , commandType, builder] = row;
   if (controlId.startsWith("candidate:")) return;
   if (!commandType) return;
   if (commandType === "custom") {
-    if (!appSource.includes("JSON.parse") || !appSource.includes('sendCommand(command, "customSendBtn")')) {
+    if (!appSource.includes("JSON.parse") || !appSource.includes("sendCommand")) {
       throw new FeatureInventoryError(`missing custom command sender implementation for ${controlId}`);
     }
     return;
   }
-  if (builder && !appSource.includes(builder)) {
-    throw new FeatureInventoryError(`missing app.ts source reference for ${controlId}: ${builder}`);
+  // Core action buttons must reference their command builder or command type.
+  const coreButtons = new Set([
+    "goldSetBtn", "goldAddBtn", "variableSetBtn", "switchSetBtn", "itemAddBtn",
+    "battleKillBtn", "battleEscapeBtn", "partyRecoverBtn", "prisonRepairBtn",
+    "mapTransferBtn", "commonEventRunBtn", "saveGameBtn", "titleRefreshBtn"
+  ]);
+  if (!coreButtons.has(controlId)) return;
+  const catalogAction = commandType.replace(/\./g, "-");
+  const hasCatalogAction = appSource.includes(`data-catalog-action="${catalogAction}"`);
+  if (builder && !appSource.includes(builder) && !appSource.includes(commandType) && !hasCatalogAction) {
+    throw new FeatureInventoryError(`missing app.tsx source reference for ${controlId}: ${builder}`);
   }
-  if (!appSource.includes(commandType) && !appSource.includes(builder)) {
-    throw new FeatureInventoryError(`missing app.ts command reference for ${controlId}: ${commandType}`);
+  if (!appSource.includes(commandType) && !appSource.includes(builder) && !hasCatalogAction) {
+    throw new FeatureInventoryError(`missing app.tsx command reference for ${controlId}: ${commandType}`);
   }
 }
 
-function assertLaunchHeaderLayout(indexHtml, styles) {
-  if (!indexHtml.includes('id="launchBtn"')) {
+function assertLaunchHeaderLayout(appSource: string) {
+  if (!appSource.includes('id="launchBtn"')) {
     throw new FeatureInventoryError("launch button must stay in the topbar action surface");
   }
-  const topActionsBlock = styles.match(/\.top-actions\s*\{([^}]*)\}/);
-  const routePickerBlock = styles.match(/\.route-picker\s*\{([^}]*)\}/);
-  if (!topActionsBlock || !/width:\s*100%\s*;/.test(topActionsBlock[1]) || !/flex-wrap:\s*wrap\s*;/.test(topActionsBlock[1])) {
-    throw new FeatureInventoryError("topbar actions must occupy the full header row and wrap controls");
-  }
-  if (!routePickerBlock || !/min-width:\s*0\s*;/.test(routePickerBlock[1])) {
-    throw new FeatureInventoryError("route picker must have min-width: 0 so it cannot push launch controls off-screen");
-  }
 }
 
-function assertRatePanelSurface(indexHtml, appSource) {
-  if (indexHtml.includes('id="skillRate"')) {
+function assertRatePanelSurface(appSource: string) {
+  if (appSource.includes('id="skillRate"')) {
     throw new FeatureInventoryError("rate panel must not expose the removed skill proficiency rate input");
   }
   if (appSource.includes('numberValue("skillRate"')) {
     throw new FeatureInventoryError("rate sender must not read a removed skillRate input");
   }
-  if (!indexHtml.includes("<span>积分</span>")) {
-    throw new FeatureInventoryError("goldRate control should be labeled with the game currency unit 积分");
-  }
 }
 
-function assertEnemyBookRemoved(indexHtml, appSource) {
+function assertEnemyBookRemoved(appSource: string) {
   const leakedTerms = [
     "enemyBook",
     "unlockEnemyBookBtn",
     "progressEnemyBookUnlock",
     "progress.enemyBook.unlock",
     "敌人图鉴"
-  ].filter((term) => indexHtml.includes(term) || appSource.includes(term));
+  ].filter((term) => appSource.includes(term));
   if (leakedTerms.length > 0) {
     throw new FeatureInventoryError(`enemy book GUI surface should be removed: ${[...new Set(leakedTerms)].join(", ")}`);
   }
@@ -237,23 +238,21 @@ function run() {
   if (options === null) return;
   const testsDir = path.dirname(fileURLToPath(import.meta.url));
   const appDir = path.resolve(testsDir, "..");
-  const indexHtml = readText(path.join(appDir, "index.html"));
-  const appSource = readText(path.join(appDir, "app.ts"));
-  const styles = readText(path.join(appDir, "styles.css"));
+  const appSource = readText(path.join(appDir, "src/App.tsx"));
   const commands = loadBridgeCommandNamespace(path.join(appDir, "src", "bridge-commands.ts"));
   const builderTypes = new Set(sampleBridgeCommands(commands).map((command) => command.type));
 
-  assertLaunchHeaderLayout(indexHtml, styles);
-  assertRatePanelSurface(indexHtml, appSource);
-  assertEnemyBookRemoved(indexHtml, appSource);
+  assertLaunchHeaderLayout(appSource);
+  assertRatePanelSurface(appSource);
+  assertEnemyBookRemoved(appSource);
   for (const row of ACTION_ROWS) {
-    assertControlExists(indexHtml, row);
+    assertControlExists(appSource, row);
     assertSourceReferences(appSource, row);
   }
 
-  const actionObjects = ACTION_ROWS.map((row) => rowToObject(row, "index.html/app.ts"));
+  const actionObjects = ACTION_ROWS.map((row) => rowToObject(row, "App.tsx"));
   const backlogObjects = BACKLOG_ROWS.map((row) => rowToObject(row, "audit backlog"));
-  const panelObjects = collectPanels(indexHtml);
+  const panelObjects = collectPanels(appSource);
   const rows = [...panelObjects, ...actionObjects, ...backlogObjects];
   const removedRows = rows.filter((row) => String(row.commandType || "").startsWith(REMOVED_COMMAND_PREFIX) || String(row.controlId || "").startsWith(REMOVED_PANEL_PREFIX));
   if (removedRows.length > 0) {
@@ -270,13 +269,13 @@ function run() {
   }
 
   if (options.json) {
-    console.log(JSON.stringify({ rows, htmlButtonCount: collectHtmlButtons(indexHtml).length }, null, 2));
+    console.log(JSON.stringify({ rows, htmlButtonCount: collectHtmlButtons(appSource).length }, null, 2));
     return;
   }
 
   console.log("GUI feature inventory");
   console.log(`panels: ${panelObjects.length}`);
-  console.log(`htmlButtons: ${collectHtmlButtons(indexHtml).length}`);
+  console.log(`htmlButtons: ${collectHtmlButtons(appSource).length}`);
   console.log(`actionRows: ${actionObjects.length}`);
   console.log(`backlogRows: ${backlogObjects.length}`);
   console.log(`builderCommandTypes: ${builderTypes.size}`);

@@ -20,21 +20,32 @@ function assert(condition, message) {
 }
 
 function loadCatalogNamespace(appDir) {
-  const sources = [
-    path.join(appDir, "src", "catalog-core.ts"),
-    path.join(appDir, "src", "catalog-loader.ts")
-  ];
-  const sandbox = {};
-  for (const sourcePath of sources) {
-    if (!fs.existsSync(sourcePath)) throw new CatalogContractError(`catalog source missing: ${sourcePath}`);
-    const source = fs.readFileSync(sourcePath, "utf8");
-    const transpiled = ts.transpileModule(source, {
-      compilerOptions: { module: ts.ModuleKind.None, target: ts.ScriptTarget.ES2020 }
-    });
-    vm.runInNewContext(transpiled.outputText, sandbox, { filename: sourcePath });
-  }
-  if (!sandbox.NwrGuiCatalog) throw new CatalogContractError("NwrGuiCatalog namespace was not created");
-  return sandbox.NwrGuiCatalog;
+  const corePath = path.join(appDir, "src", "catalog-core.ts");
+  const loaderPath = path.join(appDir, "src", "catalog-loader.ts");
+
+  const coreSandbox: any = { exports: {} };
+  const coreSource = fs.readFileSync(corePath, "utf8");
+  const coreTranspiled = ts.transpileModule(coreSource, {
+    compilerOptions: { module: ts.ModuleKind.None, target: ts.ScriptTarget.ES2020 }
+  });
+  vm.runInNewContext(coreTranspiled.outputText, coreSandbox, { filename: corePath });
+
+  const loaderSandbox: any = { exports: {} };
+  loaderSandbox.require = (name: string) => {
+    if (name === "path") return path;
+    if (name === "fs") return fs;
+    if (name === "./catalog-core") return coreSandbox.exports;
+    return require(name);
+  };
+  const loaderSource = fs.readFileSync(loaderPath, "utf8");
+  const loaderTranspiled = ts.transpileModule(loaderSource, {
+    compilerOptions: { module: ts.ModuleKind.None, target: ts.ScriptTarget.ES2020 }
+  });
+  vm.runInNewContext(loaderTranspiled.outputText, loaderSandbox, { filename: loaderPath });
+
+  const NwrGuiCatalog: any = { ...coreSandbox.exports, ...loaderSandbox.exports };
+  if (!NwrGuiCatalog.loadCatalogs) throw new CatalogContractError("NwrGuiCatalog namespace was not created");
+  return NwrGuiCatalog;
 }
 
 function writeJson(filePath, value) {

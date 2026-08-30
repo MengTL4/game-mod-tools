@@ -1,0 +1,1166 @@
+[
+  {
+    "controlId": "panel:core:gold",
+    "labelOrSource": "积分",
+    "builder": null,
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "static GUI panel backed by inventory or local controls",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "panel:core:prison",
+    "labelOrSource": "小黑屋护栏",
+    "builder": null,
+    "commandType": null,
+    "classification": "optimize",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "live state report is read-only; repair button keeps command guardrail confirmation",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "panel:core:rate",
+    "labelOrSource": "倍率",
+    "builder": null,
+    "commandType": null,
+    "classification": "optimize",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "trainer option controls are live-backed; hook state remains visible in runtime status",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "panel:core:battle",
+    "labelOrSource": "战斗",
+    "builder": null,
+    "commandType": null,
+    "classification": "optimize",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "trainer toggle controls are live-backed; scene-specific battle commands keep per-control guardrails",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "panel:core:save",
+    "labelOrSource": "存档",
+    "builder": null,
+    "commandType": null,
+    "classification": "disable-guard",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": false,
+    "rationale": "panel contains scene-dependent or mutating actions",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "panel:catalog:item",
+    "labelOrSource": "物品",
+    "builder": null,
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "static GUI panel backed by inventory or local controls",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "panel:catalog:actor",
+    "labelOrSource": "角色编辑",
+    "builder": null,
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "static GUI panel backed by inventory or local controls",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "panel:catalog:skill",
+    "labelOrSource": "技能",
+    "builder": null,
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "static GUI panel backed by inventory or local controls",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "panel:world:map",
+    "labelOrSource": "地图传送",
+    "builder": null,
+    "commandType": null,
+    "classification": "optimize",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "read-only lookup stays active; scene-mutating controls keep per-control guardrails",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "panel:world:commonEvent",
+    "labelOrSource": "公共事件",
+    "builder": null,
+    "commandType": null,
+    "classification": "optimize",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "read-only lookup stays active; scene-mutating controls keep per-control guardrails",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "panel:misc:variable",
+    "labelOrSource": "变量",
+    "builder": null,
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "static GUI panel backed by inventory or local controls",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "panel:misc:switch",
+    "labelOrSource": "开关",
+    "builder": null,
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "static GUI panel backed by inventory or local controls",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "panel:debug:diagnostics",
+    "labelOrSource": "Bridge 诊断",
+    "builder": null,
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "static GUI panel backed by inventory or local controls",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "panel:debug:command",
+    "labelOrSource": "自定义命令",
+    "builder": null,
+    "commandType": null,
+    "classification": "disable-guard",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": false,
+    "rationale": "custom JSON can send mutating commands; retain only with guardrails",
+    "source": "App.tsx panel"
+  },
+  {
+    "controlId": "runtimeRoute",
+    "labelOrSource": "Runtime bridge route selector",
+    "builder": "local launch route",
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "local GUI control, navigation, launcher, or filesystem helper",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "selector:data-tool-tab",
+    "labelOrSource": "Tool tab navigation",
+    "builder": "local UI navigation",
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "local GUI control, navigation, launcher, or filesystem helper",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "toolSectionNav",
+    "labelOrSource": "Tool section navigation",
+    "builder": "local UI navigation",
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "local GUI control, navigation, launcher, or filesystem helper",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "launchBtn",
+    "labelOrSource": "Launch runtime bridge",
+    "builder": "runtime launcher",
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "local GUI control, navigation, launcher, or filesystem helper",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "openPreparedGameBtn",
+    "labelOrSource": "Open prepared bridge game",
+    "builder": "prepared manual launcher",
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "local GUI control, navigation, launcher, or filesystem helper",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "refreshBtn",
+    "labelOrSource": "Refresh bridge state",
+    "builder": "state refresh",
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "local GUI control, navigation, launcher, or filesystem helper",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "openBridgeBtn",
+    "labelOrSource": "Open Bridge log directory",
+    "builder": "local shell",
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "local GUI control, navigation, launcher, or filesystem helper",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "openSaveBtn",
+    "labelOrSource": "Open save directory",
+    "builder": "local shell",
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "local GUI control, navigation, launcher, or filesystem helper",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "backupSaveBtn",
+    "labelOrSource": "Backup saves",
+    "builder": "local filesystem",
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "local GUI control, navigation, launcher, or filesystem helper",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "clearEventsBtn",
+    "labelOrSource": "Clear bridge event view",
+    "builder": "local bridge-state",
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "local GUI control, navigation, launcher, or filesystem helper",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "goldSetBtn",
+    "labelOrSource": "Set gold",
+    "builder": "NwrGuiBridgeCommands.goldSet",
+    "commandType": "gold.set",
+    "classification": "keep",
+    "evidenceCommands": [
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-ping"
+    ],
+    "okOrFailure": "party is live; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "goldAddBtn",
+    "labelOrSource": "Add gold",
+    "builder": "NwrGuiBridgeCommands.goldAdd",
+    "commandType": "gold.add",
+    "classification": "keep",
+    "evidenceCommands": [
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-ping"
+    ],
+    "okOrFailure": "party is live; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "selector:data-gold-add",
+    "labelOrSource": "Gold quick add buttons",
+    "builder": "NwrGuiBridgeCommands.goldAdd",
+    "commandType": "gold.add",
+    "classification": "keep",
+    "evidenceCommands": [
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-ping"
+    ],
+    "okOrFailure": "party is live; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "selector:data-gold-set",
+    "labelOrSource": "Gold MAX button",
+    "builder": "NwrGuiBridgeCommands.goldSet",
+    "commandType": "gold.set",
+    "classification": "keep",
+    "evidenceCommands": [
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-ping"
+    ],
+    "okOrFailure": "party is live; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "variableSetBtn",
+    "labelOrSource": "Write variable",
+    "builder": "setVariable",
+    "commandType": "variable.set",
+    "classification": "keep",
+    "evidenceCommands": [
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-ping"
+    ],
+    "okOrFailure": "variables/switches are live; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "switchSetBtn",
+    "labelOrSource": "Write switch",
+    "builder": "setSwitch",
+    "commandType": "switch.set",
+    "classification": "keep",
+    "evidenceCommands": [
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-ping"
+    ],
+    "okOrFailure": "variables/switches are live; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "switchOnBtn",
+    "labelOrSource": "Switch ON selector",
+    "builder": "local switch value",
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "local GUI control, navigation, launcher, or filesystem helper",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "switchOffBtn",
+    "labelOrSource": "Switch OFF selector",
+    "builder": "local switch value",
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "local GUI control, navigation, launcher, or filesystem helper",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "itemAddBtn",
+    "labelOrSource": "Add selected item",
+    "builder": "NwrGuiBridgeCommands.itemAdd",
+    "commandType": "item.add",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "actorUnlockBtn",
+    "labelOrSource": "Unlock actor from active catalog",
+    "builder": "unlockActor",
+    "commandType": "actor.unlock",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "actorAddBtn",
+    "labelOrSource": "Add actor to party",
+    "builder": "NwrGuiBridgeCommands.actorAdd",
+    "commandType": "actor.add",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "actorRemoveBtn",
+    "labelOrSource": "Remove actor",
+    "builder": "NwrGuiBridgeCommands.actorRemove",
+    "commandType": "actor.remove",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "actorRecoverBtn",
+    "labelOrSource": "Recover actor",
+    "builder": "NwrGuiBridgeCommands.actorRecover",
+    "commandType": "actor.recover",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "actorNameBtn",
+    "labelOrSource": "Set actor name",
+    "builder": "NwrGuiBridgeCommands.actorNameSet",
+    "commandType": "actor.name.set",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "actorLevelBtn",
+    "labelOrSource": "Set actor level",
+    "builder": "NwrGuiBridgeCommands.actorLevelSet",
+    "commandType": "actor.level.set",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "actorExpBtn",
+    "labelOrSource": "Add actor EXP",
+    "builder": "NwrGuiBridgeCommands.actorExpAdd",
+    "commandType": "actor.exp.add",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "actorVitalsBtn",
+    "labelOrSource": "Write actor vitals",
+    "builder": "NwrGuiBridgeCommands.actorVitalsSet",
+    "commandType": "actor.vitals.set",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "actorParamBtn",
+    "labelOrSource": "Add actor parameter",
+    "builder": "NwrGuiBridgeCommands.actorParamAdd",
+    "commandType": "actor.param.add",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "actorSpBtn",
+    "labelOrSource": "Add actor SP",
+    "builder": "NwrGuiBridgeCommands.actorJpAdd",
+    "commandType": "actor.jp.add",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "actorAllocationPointsBtn",
+    "labelOrSource": "Add actor attribute points",
+    "builder": "NwrGuiBridgeCommands.actorAllocationPointsAdd",
+    "commandType": "actor.allocationPoints.add",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "skillLearnBtn",
+    "labelOrSource": "Learn actor skill",
+    "builder": "NwrGuiBridgeCommands.actorSkillLearn",
+    "commandType": "actor.skill.learn",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "skillForgetBtn",
+    "labelOrSource": "Forget actor skill",
+    "builder": "NwrGuiBridgeCommands.actorSkillForget",
+    "commandType": "actor.skill.forget",
+    "classification": "keep",
+    "evidenceCommands": [
+      "data.dump",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "catalog/runtime data exists; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "ratesApplyBtn",
+    "labelOrSource": "Apply trainer rates",
+    "builder": "sendOptions",
+    "commandType": "trainer.options.set",
+    "classification": "optimize",
+    "evidenceCommands": [
+      "trainer.hooks.info",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-trainer-hooks-info",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "handler exists; live hook report returned skipped:true in read-only route",
+    "actionAllowed": false,
+    "rationale": "rate/options command exists, but live trainer hooks report skipped:true",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "selector:data-rate",
+    "labelOrSource": "Trainer rate presets",
+    "builder": "sendOptions",
+    "commandType": "trainer.options.set",
+    "classification": "optimize",
+    "evidenceCommands": [
+      "trainer.hooks.info",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-trainer-hooks-info",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "handler exists; live hook report returned skipped:true in read-only route",
+    "actionAllowed": false,
+    "rationale": "rate/options command exists, but live trainer hooks report skipped:true",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "noCostBtn",
+    "labelOrSource": "Toggle no skill cost",
+    "builder": "sendOptions",
+    "commandType": "trainer.options.set",
+    "classification": "disable-guard",
+    "evidenceCommands": [
+      "trainer.hooks.info",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-trainer-hooks-info",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "handler exists; live hook report returned skipped:true in read-only route",
+    "actionAllowed": false,
+    "rationale": "battle/trainer toggle depends on unavailable hook evidence",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "oneHitKillBtn",
+    "labelOrSource": "Toggle one hit kill",
+    "builder": "sendOptions",
+    "commandType": "trainer.options.set",
+    "classification": "disable-guard",
+    "evidenceCommands": [
+      "trainer.hooks.info",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-trainer-hooks-info",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "handler exists; live hook report returned skipped:true in read-only route",
+    "actionAllowed": false,
+    "rationale": "battle/trainer toggle depends on unavailable hook evidence",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "invincibleBtn",
+    "labelOrSource": "Toggle invincible",
+    "builder": "sendOptions",
+    "commandType": "trainer.options.set",
+    "classification": "disable-guard",
+    "evidenceCommands": [
+      "trainer.hooks.info",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-trainer-hooks-info",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "handler exists; live hook report returned skipped:true in read-only route",
+    "actionAllowed": false,
+    "rationale": "battle/trainer toggle depends on unavailable hook evidence",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "battleKillBtn",
+    "labelOrSource": "Kill battle enemies",
+    "builder": "NwrGuiBridgeCommands.battleKillEnemies",
+    "commandType": "battle.killEnemies",
+    "classification": "disable-guard",
+    "evidenceCommands": [
+      "trainer.hooks.info",
+      "runtime.inspect"
+    ],
+    "eventIds": [
+      "a1-static-trainer-hooks-info",
+      "a1-static-runtime-inspect"
+    ],
+    "okOrFailure": "battle runtime symbols exist but current state is not a proven battle scene",
+    "actionAllowed": false,
+    "rationale": "scene-dependent or mutating command; no mutation allowed before R3",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "battleEscapeBtn",
+    "labelOrSource": "Battle escape",
+    "builder": "NwrGuiBridgeCommands.battleEscape",
+    "commandType": "battle.escape",
+    "classification": "disable-guard",
+    "evidenceCommands": [
+      "trainer.hooks.info",
+      "runtime.inspect"
+    ],
+    "eventIds": [
+      "a1-static-trainer-hooks-info",
+      "a1-static-runtime-inspect"
+    ],
+    "okOrFailure": "battle runtime symbols exist but current state is not a proven battle scene",
+    "actionAllowed": false,
+    "rationale": "scene-dependent or mutating command; no mutation allowed before R3",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "partyRecoverBtn",
+    "labelOrSource": "Recover party",
+    "builder": "NwrGuiBridgeCommands.partyRecover",
+    "commandType": "party.recover",
+    "classification": "keep",
+    "evidenceCommands": [
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-ping"
+    ],
+    "okOrFailure": "party is live; command is mutating and waits for R3/guardrails",
+    "actionAllowed": false,
+    "rationale": "runtime backing exists, but command is mutating and waits for R3 guardrails",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "prisonRepairBtn",
+    "labelOrSource": "Repair prison guard risks",
+    "builder": "NwrGuiBridgeCommands.prisonRepair",
+    "commandType": "prison.repair",
+    "classification": "disable-guard",
+    "evidenceCommands": [
+      "protocol handler inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "handler covered by protocol tests; no live mutation sent in A1",
+    "actionAllowed": false,
+    "rationale": "scene-dependent or mutating command; no mutation allowed before R3",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "mapTransferBtn",
+    "labelOrSource": "Transfer map",
+    "builder": "transferMap",
+    "commandType": "map.transfer",
+    "classification": "disable-guard",
+    "evidenceCommands": [
+      "map.current",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-map-current",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "current map observed; transfer remains scene-dependent/mutating",
+    "actionAllowed": false,
+    "rationale": "scene-dependent or mutating command; no mutation allowed before R3",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "recordPositionBtn",
+    "labelOrSource": "Record current position",
+    "builder": "local current state snapshot",
+    "commandType": null,
+    "classification": "keep",
+    "evidenceCommands": [
+      "static inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "local GUI control; no bridge command sent",
+    "actionAllowed": true,
+    "rationale": "local GUI control, navigation, launcher, or filesystem helper",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "returnPositionBtn",
+    "labelOrSource": "Return recorded position",
+    "builder": "transferMap",
+    "commandType": "map.transfer",
+    "classification": "disable-guard",
+    "evidenceCommands": [
+      "map.current",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-map-current",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "current map observed; transfer remains scene-dependent/mutating",
+    "actionAllowed": false,
+    "rationale": "scene-dependent or mutating command; no mutation allowed before R3",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "commonEventRunBtn",
+    "labelOrSource": "Run common event",
+    "builder": "runCommonEvent",
+    "commandType": "commonEvent.run",
+    "classification": "disable-guard",
+    "evidenceCommands": [
+      "data.dump",
+      "runtime.search"
+    ],
+    "eventIds": [
+      "a1-static-data-dump",
+      "a1-static-runtime-search"
+    ],
+    "okOrFailure": "common event data exists; run remains scene-dependent/mutating",
+    "actionAllowed": false,
+    "rationale": "scene-dependent or mutating command; no mutation allowed before R3",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "saveGameBtn",
+    "labelOrSource": "Save game",
+    "builder": "NwrGuiBridgeCommands.save",
+    "commandType": "save",
+    "classification": "disable-guard",
+    "evidenceCommands": [
+      "protocol handler inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "handler covered by protocol tests; no live mutation sent in A1",
+    "actionAllowed": false,
+    "rationale": "scene-dependent or mutating command; no mutation allowed before R3",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "titleRefreshBtn",
+    "labelOrSource": "Refresh title",
+    "builder": "NwrGuiBridgeCommands.titleRefresh",
+    "commandType": "title.refresh",
+    "classification": "keep",
+    "evidenceCommands": [
+      "protocol handler inventory"
+    ],
+    "eventIds": [],
+    "okOrFailure": "handler covered by protocol tests; no live mutation sent in A1",
+    "actionAllowed": false,
+    "rationale": "protocol-covered command; not live-mutated in A1",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "customSendBtn",
+    "labelOrSource": "Send custom JSON command",
+    "builder": "JSON.parse + sendCommand",
+    "commandType": "custom",
+    "classification": "disable-guard",
+    "evidenceCommands": [
+      "static inventory",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-ping"
+    ],
+    "okOrFailure": "custom sender exists; arbitrary payloads must be guarded before use",
+    "actionAllowed": false,
+    "rationale": "custom JSON sender is useful for diagnostics but can mutate arbitrary state",
+    "source": "App.tsx"
+  },
+  {
+    "controlId": "candidate:ping",
+    "labelOrSource": "Bridge ping diagnostic",
+    "builder": "custom JSON / diagnostic candidate",
+    "commandType": "ping",
+    "classification": "candidate-add",
+    "evidenceCommands": [
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-ping"
+    ],
+    "okOrFailure": "ping returned ok:true",
+    "actionAllowed": true,
+    "rationale": "read-only diagnostic candidate returned ok:true or is protocol-covered",
+    "source": "audit backlog"
+  },
+  {
+    "controlId": "candidate:runtime.inspect",
+    "labelOrSource": "Runtime inspect diagnostic",
+    "builder": "custom JSON / diagnostic candidate",
+    "commandType": "runtime.inspect",
+    "classification": "candidate-add",
+    "evidenceCommands": [
+      "runtime.inspect"
+    ],
+    "eventIds": [
+      "a1-static-runtime-inspect"
+    ],
+    "okOrFailure": "runtime.inspect returned ok:true",
+    "actionAllowed": true,
+    "rationale": "read-only diagnostic candidate returned ok:true or is protocol-covered",
+    "source": "audit backlog"
+  },
+  {
+    "controlId": "candidate:runtime.search",
+    "labelOrSource": "Runtime search diagnostic",
+    "builder": "custom JSON / diagnostic candidate",
+    "commandType": "runtime.search",
+    "classification": "candidate-add",
+    "evidenceCommands": [
+      "runtime.search"
+    ],
+    "eventIds": [
+      "a1-static-runtime-search"
+    ],
+    "okOrFailure": "runtime.search returned ok:true",
+    "actionAllowed": true,
+    "rationale": "read-only diagnostic candidate returned ok:true or is protocol-covered",
+    "source": "audit backlog"
+  },
+  {
+    "controlId": "candidate:trainer.options.get",
+    "labelOrSource": "Trainer options diagnostic",
+    "builder": "custom JSON / diagnostic candidate",
+    "commandType": "trainer.options.get",
+    "classification": "candidate-add",
+    "evidenceCommands": [
+      "trainer.options.get"
+    ],
+    "eventIds": [
+      "a1-static-trainer-options-get"
+    ],
+    "okOrFailure": "trainer.options.get returned ok:true",
+    "actionAllowed": true,
+    "rationale": "read-only diagnostic candidate returned ok:true or is protocol-covered",
+    "source": "audit backlog"
+  },
+  {
+    "controlId": "candidate:trainer.hooks.info",
+    "labelOrSource": "Trainer hook diagnostic",
+    "builder": "custom JSON / audit candidate",
+    "commandType": "trainer.hooks.info",
+    "classification": "candidate-add",
+    "evidenceCommands": [
+      "trainer.hooks.info"
+    ],
+    "eventIds": [
+      "a1-static-trainer-hooks-info"
+    ],
+    "okOrFailure": "trainer.hooks.info returned ok:true",
+    "actionAllowed": true,
+    "rationale": "read-only diagnostic candidate returned ok:true or is protocol-covered",
+    "source": "audit backlog"
+  },
+  {
+    "controlId": "candidate:data.dump",
+    "labelOrSource": "Runtime data dump diagnostic",
+    "builder": "custom JSON / audit candidate",
+    "commandType": "data.dump",
+    "classification": "candidate-add",
+    "evidenceCommands": [
+      "data.dump"
+    ],
+    "eventIds": [
+      "a1-static-data-dump"
+    ],
+    "okOrFailure": "data.dump returned ok:true",
+    "actionAllowed": true,
+    "rationale": "read-only diagnostic candidate returned ok:true or is protocol-covered",
+    "source": "audit backlog"
+  },
+  {
+    "controlId": "candidate:map.current",
+    "labelOrSource": "Current map diagnostic",
+    "builder": "custom JSON / audit candidate",
+    "commandType": "map.current",
+    "classification": "candidate-add",
+    "evidenceCommands": [
+      "map.current",
+      "ping"
+    ],
+    "eventIds": [
+      "a1-static-map-current",
+      "a1-static-ping"
+    ],
+    "okOrFailure": "current map observed; transfer remains scene-dependent/mutating",
+    "actionAllowed": true,
+    "rationale": "read-only diagnostic candidate returned ok:true or is protocol-covered",
+    "source": "audit backlog"
+  }
+]
