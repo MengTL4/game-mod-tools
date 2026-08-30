@@ -1,13 +1,13 @@
-# Save Web Tool (Vite + TypeScript)
+# tsw-save-edit
 
-RPG Maker 存档加解密网页工具，支持大体积 JSON 编辑。
+RPG Maker 存档加解密网页工具，支持大体积 JSON 树形编辑。
 
 ## 功能
 
 - 解密：`base64 -> zlib -> MessagePack -> JSON`
 - 加密：JSON 回写为存档文本
 - 树形 JSON 编辑（可逐节点展开/收缩）
-- 支持标记类型往返：
+- 标记类型安全往返：
   - `$binary`
   - `$ext`
   - `$map`
@@ -16,33 +16,33 @@ RPG Maker 存档加解密网页工具，支持大体积 JSON 编辑。
 
 ## 运行
 
+在 monorepo 根目录：
+
 ```bash
 npm install
-npm run dev
+npm run build:web
 ```
 
-构建：
+单独开发：
 
 ```bash
+cd tsw-save-edit
+npm install
+npm run dev
 npm run build
+```
+
+## Python 辅助脚本（可选）
+
+项目根目录还保留了旧版 Python CLI，用于批量解密 `useData` / `data.pak`：
+
+```bash
+python useData_tool.py batch-decode useData useData_decoded --overwrite
+python data_pak_tool.py batch-decode data.pak data_decoded_pycrypto --overwrite
+python save_tool.py --help
 ```
 
 ## 说明
 
 - 工具不会自动改游戏资源文件，只处理你手动加载/导出的文本。
-
-## useData内容解密
-```python
-python useData_tool.py batch-decode useData useData_decoded --overwrite
-```
-- 需要参数useData,代表游戏useData存放路径
-- 需要useData_decoded,代表输出路径
-- 其余参数可以默认
-
-## data.pak内容解密
-```python
-python data_pak_tool.py batch-decode data.pak data_decoded_pycrypto --overwrite
-```
-- 需要参数data.pak,代表游戏data.pak文件位置
-- 需要data_decoded_pycrypto,代表输出路径
-- 其余参数可以默认
+- `useData_tool.py` / `data_pak_tool.py` 是历史 Python 实现，新的 web 工具只负责单文件存档加解密与 JSON 编辑。

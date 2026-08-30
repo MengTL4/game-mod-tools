@@ -73,13 +73,13 @@ docs/技术实现文档.md
 ## 结构
 
 ```text
-app/gui/                 GUI 修改器 NW 应用，app.ts 编译为 app.js
-app/save-editor/         纯网页离线存档树形编辑器
+app/gui/                 运行时 GUI 修改器（React + Vite + NW.js）
+app/save-editor/         纯网页离线存档树形编辑器（React + Vite）
 runtime/trainer/         bridge 版游戏启动器
-runtime/bridge/          注入游戏页面的 bridge 脚本
+runtime/bridge/          注入游戏页面的 bridge 脚本（TypeScript 源文件，构建后生成 .js）
 runtime/bridge-state/    命令队列、状态、日志
 runtime/save-harness/    存档解密 NW harness
-tools/                   CLI 和数据脚本
+tools/                   CLI 和数据脚本（TypeScript）
 output/extract/          解密导出结果
 output/repack/           重新加密输出
 output/backup/           GUI 备份目录
@@ -113,9 +113,11 @@ skills/                  复刻本项目用的 Codex skill
 $env:DQ2_NPM_REGISTRY = "https://registry.npmmirror.com"
 ```
 
-## GUI TypeScript
+## GUI 修改器
 
-GUI 修改器的源码是 `app/gui/app.ts`，NW 实际加载的是编译后的 `app/gui/app.js`。开发时手动构建：
+GUI 修改器现在是 **React + Vite + TypeScript + Tailwind CSS** 应用，使用 monorepo 共享组件库 `packages/ui`。NW.js 实际加载的是 Vite 构建产物 `app/gui/dist/index.html`。
+
+开发时手动构建：
 
 ```powershell
 cd .\app\gui
@@ -123,7 +125,17 @@ npm.cmd install --registry https://registry.npmmirror.com
 npm.cmd run build
 ```
 
-`tools/launch-gui.ps1` 会在发现 `app.ts` 比 `app.js` 新时自动执行同样的构建流程；启动前也会检查 `output/extract/data`，如果 `data.pak` 还没导出或游戏更新后数据过期，会自动运行 `extract-data-pak.ts` 生成 GUI 列表数据，并生成 `_gui-cache.json` 加速地图/敌群列表加载。
+`tools/launch-gui.ps1` 会在源码比 `dist/index.html` 新时自动重新构建；启动前也会检查 `output/extract/data`，如果 `data.pak` 还没导出或游戏更新后数据过期，会自动运行 `extract-data-pak.ts` 生成 GUI 列表数据，并生成 `_gui-cache.json` 加速地图/敌群列表加载。
+
+也可以回到 monorepo 根目录统一构建：
+
+```powershell
+cd ../../
+npm install
+npm run build:gui
+npm run build:save-editors
+npm run build:bridge
+```
 
 GUI 中的物品、技能、角色、变量、开关、地图、事件等长列表默认按 `20` 条分页显示，并提供首页、上一页、下一页和末页按钮。脱机挂机地图列表会显示全部地图，没有随机遇敌表的地图会标记为“无遇敌”，这类地图需要改用敌群挂机。掉落默认走数据表模拟，结果会按装备自动卖出语境显示 `粗糙`、`普通`、`优秀`、`精良`、`史诗`、`传说`、`神器`、`传承`、`不朽` 等基础品质；勾选“原生掉落”后会继续按数据表逐次抽掉落，但入包时交给游戏原生逻辑生成独立装备，运行时对象里带有 `神妙`、`天工开物`、`百炼天工` 时会追加特殊标记。战斗面板支持指定敌群开战，地图传送面板支持穿墙开关。
 

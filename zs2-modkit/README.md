@@ -73,13 +73,13 @@ docs/技术实现文档.md
 ## 结构
 
 ```text
-app/gui/                 GUI 修改器 NW 应用，app.ts 编译为 app.js
-app/save-editor/         纯网页离线存档树形编辑器
+app/gui/                 运行时 GUI 修改器（React + Vite + NW.js）
+app/save-editor/         纯网页离线存档树形编辑器（React + Vite）
 runtime/trainer/         bridge 版游戏启动器
-runtime/bridge/          注入游戏页面的 bridge 脚本
+runtime/bridge/          注入游戏页面的 bridge 脚本（TypeScript 源文件，构建后生成 .js）
 runtime/bridge-state/    命令队列、状态、日志
 runtime/save-harness/    保留的 NW harness/字节码提取目标
-tools/                   CLI 和数据脚本
+tools/                   CLI 和数据脚本（TypeScript）
 output/extract/          解包导出结果
 output/repack/           重新打包输出
 output/backup/           GUI 备份目录
@@ -119,9 +119,11 @@ https://registry.npmmirror.com
 $env:ZS2_NPM_REGISTRY = "https://registry.npmmirror.com"
 ```
 
-## GUI TypeScript
+## GUI 修改器
 
-GUI 修改器源码是 `app/gui/app.ts`，NW 实际加载的是编译后的 `app/gui/app.js`。开发时手动构建：
+GUI 修改器现在是 **React + Vite + TypeScript + Tailwind CSS** 应用，使用 monorepo 共享组件库 `packages/ui`。NW.js 实际加载的是 Vite 构建产物 `app/gui/dist/index.html`。
+
+开发时手动构建：
 
 ```powershell
 cd .\app\gui
@@ -129,7 +131,7 @@ npm.cmd install --registry https://registry.npmmirror.com
 npm.cmd run build
 ```
 
-`tools/launch-gui.ps1` 会在发现 `app.ts` 比 `app.js` 新，或 `app.js` 缺失时自动执行同样的构建流程；启动前也会按需重新生成 `runtime/bridge/page-bridge.js`，避免 GUI 已更新但注入游戏的 bridge 仍是旧版本。启动前还会检查 `output/extract/data` 和 `output/extract/useData`。如果 `data.pak`、`useData` 还没导出，关键 JSON 缺失，或游戏更新后数据过期，会自动运行对应导出脚本生成 GUI 列表数据。
+`tools/launch-gui.ps1` 会在 `dist/index.html` 缺失或源码比产物新时自动重新构建；启动前也会按需重新生成 `runtime/bridge/page-bridge.js`，避免 GUI 已更新但注入游戏的 bridge 仍是旧版本。启动前还会检查 `output/extract/data` 和 `output/extract/useData`。如果 `data.pak`、`useData` 还没导出，关键 JSON 缺失，或游戏更新后数据过期，会自动运行对应导出脚本生成 GUI 列表数据。
 
 GUI 里已经按当前游戏移除参考项目里的钓鱼功能和熟练系统。当前主要分类：
 
@@ -247,16 +249,24 @@ node --check .\tools\extract-usedata.ts
 node --check .\tools\extract-saves.ts
 node --check .\tools\encrypt-saves.ts
 node --check .\tools\trainer-send.ts
-node --check .\runtime\bridge\page-bridge.js
 ```
 
-构建：
+也可以回到 monorepo 根目录统一构建：
+
+```powershell
+cd ..
+npm install
+npm run build:gui
+npm run build:save-editors
+npm run build:bridge
+```
+
+单独构建：
 
 ```powershell
 Push-Location .\app\gui
 npm.cmd install
 npm.cmd run build
-node --check .\app.js
 Pop-Location
 
 Push-Location .\app\save-editor

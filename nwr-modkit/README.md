@@ -151,13 +151,13 @@ tools/diagnose-prison-checks.ts       检查小黑屋风险
 ## 项目结构
 
 ```text
-app/gui/                 运行时 GUI 修改器，app.ts 编译为 app.js
+app/gui/                 运行时 GUI 修改器（React + Vite + NW.js）
 app/save-editor/         React/Vite 离线存档编辑器
-runtime/bridge/          注入游戏页面的 bridge 脚本
+runtime/bridge/          注入游戏页面的 bridge 脚本（TypeScript 源文件，构建后生成 .js）
 runtime/game-app/        手动 bridge 游戏目录，运行时生成
 runtime/bridge-state/    命令队列、状态和日志，运行时生成
 runtime/save-harness/    存档/数据探针 harness
-tools/                   PowerShell 入口和 Node 脚本
+tools/                   PowerShell 入口和 TypeScript 脚本
 output/extract/          解包/解密输出，生成物
 output/repack/           回包/重新加密输出，生成物
 output/backup/           GUI 备份目录，生成物
@@ -166,7 +166,9 @@ docs/                    使用文档和技术说明
 
 ## 开发
 
-GUI 修改器源码在 `app/gui/app.ts`，NW 实际加载 `app/gui/app.js`：
+GUI 修改器和存档编辑器现在都是 **React + Vite + TypeScript + Tailwind CSS** 应用，使用 monorepo 共享组件库 `packages/ui`。NW.js 实际加载 `app/gui/dist/index.html`。
+
+GUI 修改器：
 
 ```powershell
 cd .\app\gui
@@ -180,6 +182,16 @@ npm.cmd run build
 cd .\app\save-editor
 npm.cmd install --registry https://registry.npmmirror.com
 npm.cmd run build
+```
+
+也可以回到 monorepo 根目录统一构建：
+
+```powershell
+cd ../../
+npm install
+npm run build:gui
+npm run build:save-editors
+npm run build:bridge
 ```
 
 启动脚本会在需要时自动安装依赖。默认 npm registry 为 `https://registry.npmmirror.com`，可以通过参数或环境变量覆盖：

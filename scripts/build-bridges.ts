@@ -2,9 +2,15 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+interface BuildStep {
+  cwd: string;
+  cmd: string;
+  args: string[];
+}
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const steps = [
+const steps: BuildStep[] = [
   { cwd: path.join(root, "dq2-modkit", "runtime", "bridge"), cmd: "npm", args: ["run", "build"] },
   { cwd: path.join(root, "nwr-modkit", "runtime", "bridge"), cmd: "npm", args: ["run", "build"] },
   { cwd: path.join(root, "zs2-modkit", "tools"), cmd: "npm", args: ["run", "build-bridge"] },
