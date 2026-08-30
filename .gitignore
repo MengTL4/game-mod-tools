@@ -5,3 +5,10 @@ dist/
 *.local
 *.log
 vite.config.ts.timestamp-*.mjs
+
+# Generated bridge artifacts
+runtime/bridge/*.js
+runtime/bridge/*.js.map
+skills/assets/*/runtime/bridge/*.js
+skills/assets/*/runtime/bridge/*.js.map
+skills/assets/*/app/gui/app.js

@@ -1,15 +1,8 @@
-/** @type {import('tailwindcss').Config} */
-export default {
+import type { Config } from "tailwindcss";
+
+const config: Config = {
   darkMode: ["class"],
-  content: [
-    "./src/**/*.{ts,tsx}",
-    "../../zs2-modkit/app/**/*.{ts,tsx,html}",
-    "../../nwr-modkit/app/**/*.{ts,tsx,html}",
-    "../../dq2-modkit/app/**/*.{ts,tsx,html}",
-    "../../tsw-save-edit/src/**/*.{ts,tsx,html}",
-    "../../tsw-save-editPro/src/**/*.{ts,tsx,html}",
-    "!../../**/node_modules",
-  ],
+  content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
@@ -56,3 +49,5 @@ export default {
   },
   plugins: [],
 };
+
+export default config;
